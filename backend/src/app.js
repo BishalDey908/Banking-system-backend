@@ -13,15 +13,11 @@ const transactionRouter = require("./routes/transaction.routes");
 const app = express();
 
 /**
- * CORS (Cross-Origin Resource Sharing):
- * Allows our React frontend on port 5173 to safely communicate with this backend.
- * credentials: true ensures authentication cookies and tokens are accepted.
  * CORS Configuration:
  * Supports local dev (localhost:5173), Vercel production preview URLs (*.vercel.app),
  * and custom domains configured via CLIENT_URL.
  */
 app.use(cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
     origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, curl, server-to-server, same-origin)
         if (!origin) return callback(null, true);
