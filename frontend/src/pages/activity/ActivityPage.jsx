@@ -1,26 +1,36 @@
-import React, { useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { History, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { TransactionTable } from '../../components/banking/TransactionTable';
 import { StatCard } from '../../components/common/StatCard';
+import { fetchTransactions } from '../../store/slices/transactionSlice';
 import { formatCurrency } from '../../utils/formatters';
 
 /**
  * Clean & Simple Activity Statement Page
  */
 export function ActivityPage() {
+  const dispatch = useDispatch();
   const { items: transactions } = useSelector((state) => state.transactions);
+
+  useEffect(() => {
+    dispatch(fetchTransactions());
+  }, [dispatch]);
 
   const { totalInflow, totalOutflow } = useMemo(() => {
     let inflow = 0;
     let outflow = 0;
 
     transactions.forEach((tx) => {
-      if (tx.type === 'CREDIT') inflow += Number(tx.amount) || 0;
-      if (tx.type === 'DEBIT') outflow += Number(tx.amount) || 0;
+      const amt = Math.abs(Number(tx.amount)) || 0;
+      if (tx.type === 'CREDIT') inflow += amt;
+      if (tx.type === 'DEBIT') outflow += amt;
     });
 
-    return { totalInflow: inflow, totalOutflow: outflow };
+    return {
+      totalInflow: Math.round((inflow + Number.EPSILON) * 100) / 100,
+      totalOutflow: Math.round((outflow + Number.EPSILON) * 100) / 100,
+    };
   }, [transactions]);
 
   return (

@@ -17,6 +17,14 @@ const accountSchema = new mongoose.Schema({
         type: String,
         required: [true, "Currency is required for creating an account"],
         default: 'INR'
+    },
+    // Current available balance for this bank account (always rounded to 2 decimal places)
+    balance: {
+        type: Number,
+        required: true,
+        default: 10000, // Initial balance so users can test transfers immediately
+        min: [0, "Account balance cannot be negative"],
+        set: (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100
     }
 },{
     timestamps:true

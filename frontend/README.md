@@ -127,14 +127,30 @@ Every component in `src/components/common` is thoroughly documented with JSDoc c
 
 2. **Accounts (`accountSlice`)**:
    - `fetchAccounts` loads all accounts for the authenticated user from `GET /api/accounts`.
-   - `createAccount` issues `POST /api/accounts/create` and updates the active account immediately.
+   - `createAccount` issues `POST /api/accounts` and updates the active account immediately.
+   - Automatically synchronizes account balance when a transfer or deposit succeeds via `extraReducers`.
 
-3. **Transactions (`transactionSlice`)**:
-   - Tracks incoming and outgoing transfers.
-   - `addTransfer` prepends new wire transfers with instant ledger balance recalculation.
+3. **Transactions & Ledger (`transactionSlice`)**:
+   - Real backend-backed ledger tracking with `CREDIT` and `DEBIT` entries.
+   - `sendTransfer` executes real money transfers with recipient account/UPI, deducting sender balance.
+   - `depositFunds` deposits test/real funds with instant balance snapshot (`balanceAfter`).
    - Supports searching by description/reference and filtering by type (`CREDIT` / `DEBIT`).
 
 4. **UI State (`uiSlice`)**:
-   - Global modal toggles (`isCreateAccountModalOpen`, `isTransferModalOpen`).
+   - Full **Dark Mode** toggle persisted in `localStorage` (`aura_bank_theme`).
+   - Global modal toggles (`transfer`, `deposit`, `createAccount`).
    - Notification bus (`addToast`, `removeToast`) with auto-dismiss timers.
+
+---
+
+## 📚 Complete Study & Learning Guide
+
+For a thorough, step-by-step walkthrough of:
+- How real banking systems and ledgers work (immutability, double-entry, `balanceAfter`)
+- The full backend and frontend architecture
+- Step-by-step lifecycle of sending money
+- How to study and test the codebase
+
+👉 Please read **[`LEARNING_GUIDE.md`](../LEARNING_GUIDE.md)** at the root of the project!
+
 

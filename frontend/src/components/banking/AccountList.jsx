@@ -4,7 +4,7 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
-import { maskAccountNumber, formatDateShort } from '../../utils/formatters';
+import { maskAccountNumber, formatDateShort, formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 import { cn } from '../../utils/cn';
 
@@ -124,20 +124,30 @@ export function AccountList({
               </div>
             </div>
 
+            {/* Middle Row: Live Account Balance */}
+            <div className="mt-3 mb-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] uppercase tracking-wider font-mono text-slate-400 dark:text-slate-500 block">
+                Available Balance
+              </span>
+              <span className="text-base sm:text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
+                {formatCurrency(acc.balance ?? 0, acc.currency || 'INR')}
+              </span>
+            </div>
+
             {/* Bottom Row */}
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">
-                Primary Account
+                Account Status
               </span>
               <span
                 className={cn(
                   'font-medium text-xs',
                   isSelected
-                    ? 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
                     : 'text-slate-400 dark:text-slate-500'
                 )}
               >
-                {isSelected ? '✓ Active' : 'Click to select'}
+                {isSelected ? '✓ Selected' : 'Click to select'}
               </span>
             </div>
           </Card>

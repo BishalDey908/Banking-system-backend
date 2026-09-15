@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { CreateAccountModal } from '../banking/CreateAccountModal';
 import { TransferModal } from '../banking/TransferModal';
+import { DepositModal } from '../banking/DepositModal';
 import { ToastContainer } from '../common/ToastContainer';
 
 /**
@@ -54,6 +55,7 @@ export function AppLayout() {
       {/* Global Modals & Notifications */}
       <CreateAccountModal />
       <TransferModal />
+      <DepositModal />
       <ToastContainer />
     </div>
   );

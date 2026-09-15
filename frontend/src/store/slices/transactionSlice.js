@@ -1,108 +1,139 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { transactionApi } from '../../api/transactionApi';
 
-// Initial seed transactions for realistic banking ledger experience
-const initialTransactions = [
-  {
-    id: 'tx_101',
-    accountId: 'default',
-    title: 'Salary Credit — Tech Corp Ltd',
-    category: 'Income',
-    type: 'CREDIT',
-    amount: 85000,
-    currency: 'INR',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-    status: 'COMPLETED',
-    reference: 'SAL/2026/09/8812',
-  },
-  {
-    id: 'tx_102',
-    accountId: 'default',
-    title: 'Electricity & Utility Services',
-    category: 'Bills',
-    type: 'DEBIT',
-    amount: 3240.50,
-    currency: 'INR',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    status: 'COMPLETED',
-    reference: 'UTL/PWR/9921',
-  },
-  {
-    id: 'tx_103',
-    accountId: 'default',
-    title: 'Quarterly Interest Payout',
-    category: 'Interest',
-    type: 'CREDIT',
-    amount: 1420.00,
-    currency: 'INR',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
-    status: 'COMPLETED',
-    reference: 'INT/Q3/2026',
-  },
-  {
-    id: 'tx_104',
-    accountId: 'default',
-    title: 'Blue Tokai Coffee Roasters',
-    category: 'Dining',
-    type: 'DEBIT',
-    amount: 390.00,
-    currency: 'INR',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 140).toISOString(),
-    status: 'COMPLETED',
-    reference: 'POS/CARD/7712',
-  },
-  {
-    id: 'tx_105',
-    accountId: 'default',
-    title: 'Cloud Infrastructure Subscription',
-    category: 'Software',
-    type: 'DEBIT',
-    amount: 2450.00,
-    currency: 'INR',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 200).toISOString(),
-    status: 'COMPLETED',
-    reference: 'SUB/SFT/4431',
-  },
-];
+/**
+ * Async Thunk: Fetch all ledger transactions from backend
+ */
+export const fetchTransactions = createAsyncThunk(
+  'transactions/fetchTransactions',
+  async (accountId, { rejectWithValue }) => {
+    try {
+      const data = await transactionApi.getTransactions(accountId);
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to load ledger history');
+    }
+  }
+);
+
+/**
+ * Async Thunk: Execute transfer and record in ledger
+ */
+export const sendTransfer = createAsyncThunk(
+  'transactions/sendTransfer',
+  async (transferData, { rejectWithValue, dispatch }) => {
+    try {
+      const data = await transactionApi.transfer(transferData);
+      return data;
+    } catch (err) {
+      // If the server refunded the amount due to an error, update state immediately
+      if (err.data?.refunded) {
+        if (err.data.transaction) {
+          dispatch(transactionSlice.actions.addTransaction(err.data.transaction));
+        }
+        if (err.data.newBalance !== undefined) {
+          dispatch({
+            type: 'accounts/updateBalance',
+            payload: {
+              accountId: transferData.fromAccountId,
+              newBalance: err.data.newBalance,
+            },
+          });
+        }
+      }
+      return rejectWithValue(err.message || 'Transfer failed');
+    }
+  }
+);
+
+/**
+ * Async Thunk: Deposit funds into account
+ */
+export const depositFunds = createAsyncThunk(
+  'transactions/depositFunds',
+  async (depositData, { rejectWithValue }) => {
+    try {
+      const data = await transactionApi.deposit(depositData);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Deposit failed');
+    }
+  }
+);
 
 const transactionSlice = createSlice({
   name: 'transactions',
   initialState: {
-    items: initialTransactions,
+    items: [],
+    loading: false,
+    actionLoading: false,
+    error: null,
     searchQuery: '',
-    typeFilter: 'ALL', // 'ALL', 'CREDIT', 'DEBIT'
-    categoryFilter: 'ALL',
-    isExporting: false,
+    typeFilter: 'ALL',
   },
   reducers: {
+    addTransaction: (state, action) => {
+      if (action.payload) {
+        state.items.unshift(action.payload);
+      }
+    },
     setSearchQuery: (state, action) => {
       state.searchQuery = action.payload;
     },
     setTypeFilter: (state, action) => {
       state.typeFilter = action.payload;
     },
-    setCategoryFilter: (state, action) => {
-      state.categoryFilter = action.payload;
+    clearTransactionError: (state) => {
+      state.error = null;
     },
-    addTransfer: (state, action) => {
-      const { accountId, recipientName, recipientAccount, amount, note, type = 'DEBIT' } = action.payload;
-      const newTx = {
-        id: `tx_${Date.now()}`,
-        accountId: accountId || 'default',
-        title: `Transfer to ${recipientName} (${recipientAccount.slice(-4)})`,
-        category: 'Transfer',
-        type: type,
-        amount: Number(amount),
-        currency: 'INR',
-        date: new Date().toISOString(),
-        status: 'COMPLETED',
-        reference: `TRF/${Date.now().toString().slice(-6)}`,
-        note: note || '',
-      };
-      state.items.unshift(newTx);
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch
+      .addCase(fetchTransactions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTransactions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchTransactions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Send Transfer
+      .addCase(sendTransfer.pending, (state) => {
+        state.actionLoading = true;
+        state.error = null;
+      })
+      .addCase(sendTransfer.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        if (action.payload?.transaction) {
+          state.items.unshift(action.payload.transaction);
+        }
+      })
+      .addCase(sendTransfer.rejected, (state, action) => {
+        state.actionLoading = false;
+        state.error = action.payload;
+      })
+      // Deposit
+      .addCase(depositFunds.pending, (state) => {
+        state.actionLoading = true;
+        state.error = null;
+      })
+      .addCase(depositFunds.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        if (action.payload?.transaction) {
+          state.items.unshift(action.payload.transaction);
+        }
+      })
+      .addCase(depositFunds.rejected, (state, action) => {
+        state.actionLoading = false;
+        state.error = action.payload;
+      });
   },
 });
 
-export const { setSearchQuery, setTypeFilter, setCategoryFilter, addTransfer } = transactionSlice.actions;
+export const { addTransaction, setSearchQuery, setTypeFilter, clearTransactionError } = transactionSlice.actions;
 export default transactionSlice.reducer;
-

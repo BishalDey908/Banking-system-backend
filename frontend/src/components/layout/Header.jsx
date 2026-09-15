@@ -5,7 +5,7 @@ import { Button } from '../common/Button';
 import { Avatar } from '../common/Avatar';
 import { setCreateAccountModalOpen, setTransferModalOpen, toggleDarkMode } from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
-import { maskAccountNumber } from '../../utils/formatters';
+import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
 
 /**
  * Top Application Header Component
@@ -52,7 +52,7 @@ export function Header({ onToggleMobileMenu, title = 'Dashboard' }) {
             >
               {accounts.map((acc) => (
                 <option key={acc._id} value={acc._id} className="dark:bg-slate-800 dark:text-slate-200">
-                  {maskAccountNumber(acc._id)} ({acc.currency || 'INR'})
+                  {maskAccountNumber(acc._id)} — {formatCurrency(acc.balance || 0, acc.currency)}
                 </option>
               ))}
             </select>

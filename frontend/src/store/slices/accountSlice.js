@@ -38,6 +38,13 @@ const accountSlice = createSlice({
     setActiveAccount: (state, action) => {
       state.activeAccountId = action.payload;
     },
+    updateBalance: (state, action) => {
+      const { accountId, newBalance } = action.payload || {};
+      const acc = state.accounts.find((a) => a._id === accountId);
+      if (acc && typeof newBalance === 'number') {
+        acc.balance = newBalance;
+      }
+    },
     clearAccountError: (state) => {
       state.error = null;
     },
@@ -73,10 +80,34 @@ const accountSlice = createSlice({
       .addCase(createAccount.rejected, (state, action) => {
         state.createLoading = false;
         state.error = action.payload;
+      })
+      // Sync balance when a transfer completes
+      .addCase('transactions/sendTransfer/fulfilled', (state, action) => {
+        const tx = action.payload?.transaction;
+        const newBalance = action.payload?.newBalance;
+        if (tx && newBalance !== undefined && newBalance !== null) {
+          const accountId = tx.account?._id || tx.account;
+          const acc = state.accounts.find((a) => a._id === accountId);
+          if (acc) {
+            acc.balance = Math.round((Number(newBalance) + Number.EPSILON) * 100) / 100;
+          }
+        }
+      })
+      // Sync balance when a deposit completes
+      .addCase('transactions/depositFunds/fulfilled', (state, action) => {
+        const tx = action.payload?.transaction;
+        const newBalance = action.payload?.newBalance;
+        if (tx && newBalance !== undefined && newBalance !== null) {
+          const accountId = tx.account?._id || tx.account;
+          const acc = state.accounts.find((a) => a._id === accountId);
+          if (acc) {
+            acc.balance = Math.round((Number(newBalance) + Number.EPSILON) * 100) / 100;
+          }
+        }
       });
   },
 });
 
-export const { setActiveAccount, clearAccountError } = accountSlice.actions;
+export const { setActiveAccount, updateBalance, clearAccountError } = accountSlice.actions;
 export default accountSlice.reducer;
 

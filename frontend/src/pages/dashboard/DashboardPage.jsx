@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
@@ -14,8 +14,13 @@ import { BankCard } from '../../components/banking/BankCard';
 import { QuickActions } from '../../components/banking/QuickActions';
 import { AccountList } from '../../components/banking/AccountList';
 import { TransactionTable } from '../../components/banking/TransactionTable';
-import { setCreateAccountModalOpen, setTransferModalOpen } from '../../store/slices/uiSlice';
+import {
+  setCreateAccountModalOpen,
+  setTransferModalOpen,
+  setDepositModalOpen,
+} from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
+import { fetchTransactions } from '../../store/slices/transactionSlice';
 import { formatCurrency } from '../../utils/formatters';
 
 /**
@@ -29,30 +34,40 @@ export function DashboardPage() {
   );
   const { items: transactions } = useSelector((state) => state.transactions);
 
+  // Fetch real ledger transactions from backend on mount
+  useEffect(() => {
+    dispatch(fetchTransactions());
+  }, [dispatch]);
+
   const activeAccount =
     accounts.find((a) => a._id === activeAccountId) || accounts[0] || null;
 
-  // Calculate totals
-  const { totalInflow, totalOutflow, computedBalance } = useMemo(() => {
+  // Calculate live totals from backend records with 2-decimal precision
+  const { totalInflow, totalOutflow, totalBalance } = useMemo(() => {
     let inflow = 0;
     let outflow = 0;
 
     transactions.forEach((tx) => {
+      const amt = Math.abs(Number(tx.amount)) || 0;
       if (tx.type === 'CREDIT') {
-        inflow += Number(tx.amount) || 0;
+        inflow += amt;
       } else if (tx.type === 'DEBIT') {
-        outflow += Number(tx.amount) || 0;
+        outflow += amt;
       }
     });
 
-    const balance = Math.max(0, 125000 + inflow - outflow);
+    // Sum balances across all accounts with precision
+    const balance = accounts.reduce(
+      (sum, acc) => sum + (Number(acc.balance) || 0),
+      0
+    );
 
     return {
-      totalInflow: inflow,
-      totalOutflow: outflow,
-      computedBalance: balance,
+      totalInflow: Math.round((inflow + Number.EPSILON) * 100) / 100,
+      totalOutflow: Math.round((outflow + Number.EPSILON) * 100) / 100,
+      totalBalance: Math.round((balance + Number.EPSILON) * 100) / 100,
     };
-  }, [transactions]);
+  }, [transactions, accounts]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -70,11 +85,11 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Balance"
-          value={formatCurrency(computedBalance, activeAccount?.currency || 'INR')}
+          value={formatCurrency(totalBalance, activeAccount?.currency || 'INR')}
           change="+4.2%"
           changeType="positive"
           icon={<Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-          subtitle="Available across accounts"
+          subtitle="Available in all accounts"
         />
 
         <StatCard
@@ -127,13 +142,13 @@ export function DashboardPage() {
               Quick Actions
             </span>
             <QuickActions
-              onOpenCreateModal={() => dispatch(setCreateAccountModalOpen(true))}
               onOpenTransferModal={() => dispatch(setTransferModalOpen(true))}
+              onOpenDepositModal={() => dispatch(setDepositModalOpen(true))}
+              onOpenCreateModal={() => dispatch(setCreateAccountModalOpen(true))}
               onExportStatement={() => {
                 const btn = document.querySelector('button[title="CSV"]');
                 btn?.click();
               }}
-              onManageCards={() => dispatch(setTransferModalOpen(true))}
             />
           </div>
 

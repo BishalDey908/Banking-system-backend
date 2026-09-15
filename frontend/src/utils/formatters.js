@@ -5,23 +5,31 @@
  * @returns {string} Formatted currency string
  */
 export function formatCurrency(amount, currency = 'INR') {
-  const num = Number(amount) || 0;
+  const num = Number(amount);
+  const safeNum = isNaN(num) || !isFinite(num) ? 0 : num;
+  const rounded = Math.round((safeNum + Number.EPSILON) * 100) / 100;
   
-  if (currency.toUpperCase() === 'INR') {
-    return new Intl.NumberFormat('en-IN', {
+  const curr = (currency || 'INR').toUpperCase();
+
+  try {
+    if (curr === 'INR') {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2,
+      }).format(rounded);
+    }
+
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: curr,
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
-    }).format(num);
+    }).format(rounded);
+  } catch {
+    return `₹${rounded.toFixed(2)}`;
   }
-
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(num);
 }
 
 /**

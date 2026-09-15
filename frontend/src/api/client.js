@@ -4,9 +4,13 @@ import axios from 'axios';
  * Pre-configured Axios instance for banking API calls.
  * Proxied via Vite to http://localhost:3000 in development.
  */
+// Base URL is read from .env file (VITE_API_BASE_URL)
+// If not set, it defaults to '/api' which Vite proxies to http://localhost:3000
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const apiClient = axios.create({
-  baseURL: '/api',
-  withCredentials: true,
+  baseURL: API_BASE_URL,
+  withCredentials: true, // Sends HTTP cookies with every request
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,7 +45,10 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('aura_bank_user');
     }
 
-    return Promise.reject(new Error(message));
+    const err = new Error(message);
+    err.data = error.response?.data;
+    err.status = error.response?.status;
+    return Promise.reject(err);
   }
 );
 

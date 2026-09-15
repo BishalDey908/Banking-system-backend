@@ -99,7 +99,6 @@ async function userLogoutController(req, res) {
 
 module.exports = {
     userRegisterController,
-    userLoginController
     userLoginController,
     userMeController,
     userLogoutController

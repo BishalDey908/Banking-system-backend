@@ -8,7 +8,7 @@ import { AccountList } from '../../components/banking/AccountList';
 import { BankCard } from '../../components/banking/BankCard';
 import { setCreateAccountModalOpen, setTransferModalOpen } from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 
 /**
@@ -132,6 +132,13 @@ export function AccountsPage() {
                       )}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-slate-500 dark:text-slate-400">Available Balance</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(activeAccount.balance ?? 0, activeAccount.currency || 'INR')}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between pt-2">

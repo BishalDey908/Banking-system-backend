@@ -79,17 +79,18 @@ export function TransactionTable({
   const handleExportCSV = () => {
     if (displayedList.length === 0) return;
 
-    const headers = ['Transaction ID', 'Title', 'Type', 'Category', 'Amount', 'Currency', 'Date', 'Status', 'Reference'];
+    const headers = ['Transaction ID', 'Title', 'Type', 'Category', 'Amount', 'Balance After', 'Currency', 'Date', 'Status', 'Reference'];
     const rows = displayedList.map((tx) => [
-      tx.id,
-      `"${tx.title}"`,
+      tx._id || tx.id,
+      `"${tx.title || 'Transaction'}"`,
       tx.type,
-      tx.category,
-      tx.amount,
+      tx.category || 'General',
+      `${tx.type === 'DEBIT' ? '-' : '+'}${(Math.abs(Number(tx.amount)) || 0).toFixed(2)}`,
+      tx.balanceAfter !== undefined && tx.balanceAfter !== null ? Number(tx.balanceAfter).toFixed(2) : '',
       tx.currency || 'INR',
-      tx.date,
-      tx.status,
-      tx.reference,
+      tx.createdAt || tx.date || '',
+      tx.status || 'COMPLETED',
+      tx.reference || '',
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
@@ -178,7 +179,7 @@ export function TransactionTable({
 
                 return (
                   <tr
-                    key={tx.id}
+                    key={tx._id || tx.id}
                     className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group"
                   >
                     {/* Title + Direction Icon */}
@@ -203,7 +204,7 @@ export function TransactionTable({
                             {tx.title}
                           </span>
                           <span className="text-xs text-slate-400 dark:text-slate-500 sm:hidden block mt-0.5">
-                            {formatDateShort(tx.date)}
+                            {formatDateShort(tx.createdAt || tx.date)}
                           </span>
                         </div>
                       </div>
@@ -219,7 +220,7 @@ export function TransactionTable({
 
                     {/* Date */}
                     <td className="py-3.5 px-4 hidden sm:table-cell text-xs font-mono text-slate-500 dark:text-slate-400">
-                      {formatDateShort(tx.date)}
+                      {formatDateShort(tx.createdAt || tx.date)}
                     </td>
 
                     {/* Reference */}
@@ -237,15 +238,20 @@ export function TransactionTable({
                       </Badge>
                     </td>
 
-                    {/* Amount */}
+                    {/* Amount & Running Ledger Balance Snapshot */}
                     <td className="py-3.5 px-4 sm:px-6 text-right font-mono font-medium tabular-nums">
                       <span
                         className={cn(
                           isCredit ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-100'
                         )}
                       >
-                        {isCredit ? '+' : '-'}{formatCurrency(tx.amount, tx.currency)}
+                        {isCredit ? '+' : '-'}{formatCurrency(Math.abs(Number(tx.amount) || 0), tx.currency || 'INR')}
                       </span>
+                      {tx.balanceAfter !== undefined && tx.balanceAfter !== null && (
+                        <span className="block text-[11px] text-slate-400 dark:text-slate-500 font-mono font-normal mt-0.5">
+                          Bal: {formatCurrency(tx.balanceAfter, tx.currency || 'INR')}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

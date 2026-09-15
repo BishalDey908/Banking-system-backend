@@ -6,7 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { Alert } from '../../components/common/Alert';
-import { addTransfer } from '../../store/slices/transactionSlice';
+import { sendTransfer } from '../../store/slices/transactionSlice';
 import { maskAccountNumber, formatCurrency, formatDateShort } from '../../utils/formatters';
 import { validateTransferAmount } from '../../utils/validators';
 import { useToast } from '../../hooks/useToast';
@@ -30,16 +30,31 @@ export function TransfersPage() {
 
   const accountOptions = accounts.map((acc) => ({
     value: acc._id,
-    label: `${maskAccountNumber(acc._id)} (${acc.currency || 'INR'})`,
+    label: `${maskAccountNumber(acc._id)} (${acc.currency || 'INR'}) — Bal: ${formatCurrency(acc.balance || 0, acc.currency)}`,
   }));
 
   const quickAmounts = [500, 1000, 2000, 5000, 10000];
 
   const recentTransfers = transactions.filter((t) => t.category === 'Transfer' || t.type === 'DEBIT');
 
-  const handleSend = (e) => {
+  const selectedAccount = accounts.find((a) => a._id === (selectedAccountId || activeAccountId || accounts[0]?._id));
+  const availableBalance = typeof selectedAccount?.balance === 'number' ? selectedAccount.balance : 0;
+
+  const handleAddAmount = (val) => {
+    const current = Number(amount) || 0;
+    const next = Math.round((current + val) * 100) / 100;
+    setAmount(String(next));
+  };
+
+  const handleSend = async (e) => {
     e.preventDefault();
     setError('');
+
+    const fromAccount = selectedAccountId || activeAccountId || accounts[0]?._id;
+    if (!fromAccount) {
+      setError('Please select an account to send money from.');
+      return;
+    }
 
     if (!recipientName.trim()) {
       setError('Please enter the recipient name.');
@@ -50,33 +65,42 @@ export function TransfersPage() {
       return;
     }
 
-    const validation = validateTransferAmount(amount);
+    if (recipientAccount.trim() === fromAccount) {
+      setError('Cannot transfer money to the same bank account.');
+      return;
+    }
+
+    const validation = validateTransferAmount(amount, availableBalance);
     if (!validation.isValid) {
       setError(validation.message);
       return;
     }
 
+    const numAmount = Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      dispatch(
-        addTransfer({
-          accountId: selectedAccountId || activeAccountId,
-          recipientName: recipientName.trim(),
-          recipientAccount: recipientAccount.trim(),
-          amount: Number(amount),
-          note: note.trim(),
-          type: 'DEBIT',
-        })
-      );
+    const result = await dispatch(
+      sendTransfer({
+        fromAccountId: fromAccount,
+        recipientName: recipientName.trim(),
+        recipientAccount: recipientAccount.trim(),
+        amount: numAmount,
+        note: note.trim(),
+      })
+    );
 
-      setIsSubmitting(false);
-      showSuccess(`Sent ${formatCurrency(amount)} to ${recipientName}`);
+    setIsSubmitting(false);
+
+    if (sendTransfer.fulfilled.match(result)) {
+      showSuccess(`Sent ${formatCurrency(numAmount)} to ${recipientName}`);
       setRecipientName('');
       setRecipientAccount('');
       setAmount('');
       setNote('');
-    }, 400);
+    } else {
+      setError(result.payload || 'Transfer failed.');
+    }
   };
 
   return (
@@ -130,12 +154,33 @@ export function TransfersPage() {
                 />
               </div>
 
-              {/* Amount */}
+              {/* Amount with Available Balance Preview */}
               <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+                    Amount (INR) <span className="text-rose-500">*</span>
+                  </label>
+                  {selectedAccount && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        Available: <strong className="font-mono text-slate-850 dark:text-slate-200">{formatCurrency(availableBalance, selectedAccount.currency || 'INR')}</strong>
+                      </span>
+                      {availableBalance > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAmount(String(availableBalance))}
+                          className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        >
+                          Send All
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Input
-                  label="Amount (INR)"
                   type="number"
-                  min="1"
+                  min="0.01"
                   step="any"
                   placeholder="0.00"
                   value={amount}
@@ -144,19 +189,28 @@ export function TransfersPage() {
                   required
                 />
 
-                {/* Quick amount chips */}
+                {/* Quick add chips */}
                 <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                   <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">Quick Add:</span>
                   {quickAmounts.map((q) => (
                     <button
                       key={q}
                       type="button"
-                      onClick={() => setAmount(String(q))}
+                      onClick={() => handleAddAmount(q)}
                       className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 text-xs font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 transition-colors"
                     >
                       +₹{q.toLocaleString('en-IN')}
                     </button>
                   ))}
+                  {amount && Number(amount) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAmount('')}
+                      className="px-2 py-1 rounded-md text-xs font-mono text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors ml-auto"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -197,15 +251,15 @@ export function TransfersPage() {
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
               {recentTransfers.slice(0, 5).map((tx) => (
-                <div key={tx.id} className="py-2.5 flex items-center justify-between">
+                <div key={tx._id || tx.id} className="py-2.5 flex items-center justify-between">
                   <div>
                     <span className="font-medium text-slate-900 dark:text-slate-100 block">{tx.title}</span>
                     <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                      {formatDateShort(tx.date)}
+                      {formatDateShort(tx.createdAt || tx.date)}
                     </span>
                   </div>
                   <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                    -{formatCurrency(tx.amount, tx.currency)}
+                    -{formatCurrency(Math.abs(Number(tx.amount) || 0), tx.currency)}
                   </span>
                 </div>
               ))}

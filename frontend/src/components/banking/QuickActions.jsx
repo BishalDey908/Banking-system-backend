@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, ArrowUpRight, Download, CreditCard } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, ArrowDownLeft, Download } from 'lucide-react';
 import { Card } from '../common/Card';
 import { cn } from '../../utils/cn';
 
@@ -9,35 +9,35 @@ import { cn } from '../../utils/cn';
 export function QuickActions({
   onOpenCreateModal,
   onOpenTransferModal,
+  onOpenDepositModal,
   onExportStatement,
-  onManageCards,
   className = '',
 }) {
   const actions = [
     {
-      label: 'New Account',
-      description: 'Open in seconds',
-      icon: <PlusCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
-      onClick: onOpenCreateModal,
+      label: 'Send Money',
+      description: 'Transfer instantly',
+      icon: <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
+      onClick: onOpenTransferModal,
       highlight: true,
     },
     {
-      label: 'Send Money',
-      description: 'Transfer instantly',
-      icon: <ArrowUpRight className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
-      onClick: onOpenTransferModal,
+      label: 'Deposit Funds',
+      description: 'Add money',
+      icon: <ArrowDownLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
+      onClick: onOpenDepositModal,
+    },
+    {
+      label: 'New Account',
+      description: 'Open in seconds',
+      icon: <PlusCircle className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
+      onClick: onOpenCreateModal,
     },
     {
       label: 'Download CSV',
-      description: 'Export statements',
+      description: 'Export statement',
       icon: <Download className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
       onClick: onExportStatement,
-    },
-    {
-      label: 'My Card',
-      description: 'View details',
-      icon: <CreditCard className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
-      onClick: onManageCards,
     },
   ];
 

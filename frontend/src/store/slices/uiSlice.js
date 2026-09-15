@@ -17,6 +17,7 @@ const uiSlice = createSlice({
     darkMode: initialDarkMode,
     isCreateAccountModalOpen: false,
     isTransferModalOpen: false,
+    isDepositModalOpen: false,
     isSidebarCollapsed: false,
     toasts: [],
   },
@@ -35,6 +36,9 @@ const uiSlice = createSlice({
     },
     setTransferModalOpen: (state, action) => {
       state.isTransferModalOpen = action.payload;
+    },
+    setDepositModalOpen: (state, action) => {
+      state.isDepositModalOpen = action.payload;
     },
     toggleSidebar: (state) => {
       state.isSidebarCollapsed = !state.isSidebarCollapsed;
@@ -57,6 +61,7 @@ export const {
   toggleDarkMode,
   setCreateAccountModalOpen,
   setTransferModalOpen,
+  setDepositModalOpen,
   toggleSidebar,
   setSidebarCollapsed,
   addToast,

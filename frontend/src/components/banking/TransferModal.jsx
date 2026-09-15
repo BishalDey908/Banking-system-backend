@@ -6,7 +6,7 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Alert } from '../common/Alert';
-import { addTransfer } from '../../store/slices/transactionSlice';
+import { sendTransfer } from '../../store/slices/transactionSlice';
 import { setTransferModalOpen } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
 import { validateTransferAmount } from '../../utils/validators';
@@ -36,12 +36,21 @@ export function TransferModal() {
 
   const accountOptions = accounts.map((acc) => ({
     value: acc._id,
-    label: `${maskAccountNumber(acc._id)} (${acc.currency || 'INR'})`,
+    label: `${maskAccountNumber(acc._id)} (${acc.currency || 'INR'}) — Bal: ${formatCurrency(acc.balance || 0, acc.currency)}`,
   }));
 
-  const handleSubmit = (e) => {
+  const fromAccount = selectedAccountId || activeAccountId || accounts[0]?._id;
+  const currentAcc = accounts.find((a) => a._id === fromAccount);
+  const availableBalance = typeof currentAcc?.balance === 'number' ? currentAcc.balance : 0;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!fromAccount) {
+      setError('Please select an account to send money from.');
+      return;
+    }
 
     if (!recipientName.trim()) {
       setError('Please enter the recipient name.');
@@ -52,34 +61,43 @@ export function TransferModal() {
       return;
     }
 
-    const validation = validateTransferAmount(amount, 10000000);
+    if (recipientAccount.trim() === fromAccount) {
+      setError('Cannot transfer money to the same bank account.');
+      return;
+    }
+
+    const validation = validateTransferAmount(amount, availableBalance);
     if (!validation.isValid) {
       setError(validation.message);
       return;
     }
 
+    const numAmount = Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      dispatch(
-        addTransfer({
-          accountId: selectedAccountId || activeAccountId,
-          recipientName: recipientName.trim(),
-          recipientAccount: recipientAccount.trim(),
-          amount: Number(amount),
-          note: note.trim(),
-          type: 'DEBIT',
-        })
-      );
+    const result = await dispatch(
+      sendTransfer({
+        fromAccountId: fromAccount,
+        recipientName: recipientName.trim(),
+        recipientAccount: recipientAccount.trim(),
+        amount: numAmount,
+        note: note.trim(),
+      })
+    );
 
-      setIsSubmitting(false);
-      showSuccess(`Sent ${formatCurrency(amount)} to ${recipientName}`);
+    setIsSubmitting(false);
+
+    if (sendTransfer.fulfilled.match(result)) {
+      showSuccess(`Sent ${formatCurrency(numAmount)} to ${recipientName}`);
       setRecipientName('');
       setRecipientAccount('');
       setAmount('');
       setNote('');
       handleClose();
-    }, 400);
+    } else {
+      setError(result.payload || 'Transfer failed.');
+    }
   };
 
   return (
@@ -138,17 +156,40 @@ export function TransferModal() {
           required
         />
 
-        <Input
-          label="Amount (INR)"
-          type="number"
-          min="1"
-          step="any"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          leftIcon={<span className="text-xs font-mono font-bold">₹</span>}
-          required
-        />
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+              Amount (INR) <span className="text-rose-500">*</span>
+            </label>
+            {currentAcc && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500 dark:text-slate-400">
+                  Available: <strong className="font-mono text-slate-850 dark:text-slate-200">{formatCurrency(availableBalance, currentAcc.currency || 'INR')}</strong>
+                </span>
+                {availableBalance > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(String(availableBalance))}
+                    className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    Send All
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Input
+            type="number"
+            min="0.01"
+            step="any"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            leftIcon={<span className="text-xs font-mono font-bold">₹</span>}
+            required
+          />
+        </div>
 
         <Input
           label="Note (Optional)"
