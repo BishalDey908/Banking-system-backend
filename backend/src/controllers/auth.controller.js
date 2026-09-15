@@ -80,7 +80,27 @@ async function userLoginController(req, res) {
     })
 }
 
+async function userMeController(req, res) {
+    res.status(200).json({
+        user: {
+            _id: req.user._id,
+            email: req.user.email,
+            name: req.user.name
+        }
+    });
+}
+
+async function userLogoutController(req, res) {
+    res.clearCookie("token");
+    res.status(200).json({
+        message: "Logged out successfully"
+    });
+}
+
 module.exports = {
     userRegisterController,
     userLoginController
+    userLoginController,
+    userMeController,
+    userLogoutController
 }

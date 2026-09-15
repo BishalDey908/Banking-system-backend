@@ -1,5 +1,6 @@
 const express = require("express")
 const authcontroller = require("../controllers/auth.controller")
+const authMiddleware = require("../middleware/auth.middleware")
 
 const router = express.Router()
 
@@ -19,5 +20,21 @@ router.post("/register",authcontroller.userRegisterController)
  * * - @access Public
 */
 router.post("/login",authcontroller.userLoginController)
+
+/*Current User Profile Route*/
+/**     
+ * * - @route GET /api/auth/me
+ * * - @desc Get authenticated user profile
+ * * - @access Private
+*/
+router.get("/me", authMiddleware.authMiddleware, authcontroller.userMeController)
+
+/*Logout Route*/
+/**     
+ * * - @route POST /api/auth/logout
+ * * - @desc Logout user and clear cookie
+ * * - @access Public
+*/
+router.post("/logout", authcontroller.userLogoutController)
 
 module.exports = router
