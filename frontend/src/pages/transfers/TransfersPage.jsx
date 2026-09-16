@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowUpRight, History } from 'lucide-react';
 import { Card } from '../../components/common/Card';
@@ -6,7 +6,8 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { Alert } from '../../components/common/Alert';
-import { sendTransfer } from '../../store/slices/transactionSlice';
+import { Skeleton } from '../../components/common/Skeleton';
+import { sendTransfer, fetchTransactions } from '../../store/slices/transactionSlice';
 import { maskAccountNumber, formatCurrency, formatDateShort } from '../../utils/formatters';
 import { validateTransferAmount } from '../../utils/validators';
 import { useToast } from '../../hooks/useToast';
@@ -16,9 +17,13 @@ import { useToast } from '../../hooks/useToast';
  */
 export function TransfersPage() {
   const dispatch = useDispatch();
-  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
-  const { items: transactions } = useSelector((state) => state.transactions);
+  const { accounts, activeAccountId, loading: accountsLoading } = useSelector((state) => state.accounts);
+  const { items: transactions, loading: transactionsLoading } = useSelector((state) => state.transactions);
   const { showSuccess } = useToast();
+
+  useEffect(() => {
+    dispatch(fetchTransactions());
+  }, [dispatch]);
 
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId || '');
   const [recipientName, setRecipientName] = useState('');
@@ -123,7 +128,14 @@ export function TransfersPage() {
               {error && <Alert variant="danger" message={error} dismissible />}
 
               {/* Source Account */}
-              {accountOptions.length > 0 ? (
+              {accountsLoading ? (
+                <div className="space-y-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono block">
+                    From Account
+                  </span>
+                  <Skeleton variant="rectangular" className="w-full h-10 rounded-lg" />
+                </div>
+              ) : accountOptions.length > 0 ? (
                 <Select
                   label="From Account"
                   options={accountOptions}
@@ -160,7 +172,9 @@ export function TransfersPage() {
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
                     Amount (INR) <span className="text-rose-500">*</span>
                   </label>
-                  {selectedAccount && (
+                  {accountsLoading ? (
+                    <Skeleton variant="text" className="w-28 h-3.5" />
+                  ) : selectedAccount ? (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-slate-500 dark:text-slate-400">
                         Available: <strong className="font-mono text-slate-850 dark:text-slate-200">{formatCurrency(availableBalance, selectedAccount.currency || 'INR')}</strong>
@@ -175,7 +189,7 @@ export function TransfersPage() {
                         </button>
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <Input
@@ -249,21 +263,39 @@ export function TransfersPage() {
               <History className="w-3.5 h-3.5 text-slate-400" />
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {recentTransfers.slice(0, 5).map((tx) => (
-                <div key={tx._id || tx.id} className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <span className="font-medium text-slate-900 dark:text-slate-100 block">{tx.title}</span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                      {formatDateShort(tx.createdAt || tx.date)}
+            {transactionsLoading ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="py-2.5 flex items-center justify-between">
+                    <div className="space-y-1.5">
+                      <Skeleton variant="text" className="w-28 h-3.5" />
+                      <Skeleton variant="text" className="w-16 h-2.5" />
+                    </div>
+                    <Skeleton variant="text" className="w-16 h-4" />
+                  </div>
+                ))}
+              </div>
+            ) : recentTransfers.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                No recent transfer records found.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                {recentTransfers.slice(0, 5).map((tx) => (
+                  <div key={tx._id || tx.id} className="py-2.5 flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-slate-900 dark:text-slate-100 block">{tx.title}</span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                        {formatDateShort(tx.createdAt || tx.date)}
+                      </span>
+                    </div>
+                    <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
+                      -{formatCurrency(Math.abs(Number(tx.amount) || 0), tx.currency)}
                     </span>
                   </div>
-                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
-                    -{formatCurrency(Math.abs(Number(tx.amount) || 0), tx.currency)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </div>

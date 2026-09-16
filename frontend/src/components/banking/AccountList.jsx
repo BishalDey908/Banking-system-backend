@@ -4,6 +4,7 @@ import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
+import { AccountCardSkeleton } from '../common/Skeleton';
 import { maskAccountNumber, formatDateShort, formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 import { cn } from '../../utils/cn';
@@ -42,6 +43,15 @@ export function AccountList({
         return <Badge variant="slate" size="sm">{status}</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className={cn('grid grid-cols-1 md:grid-cols-2 gap-4', className)}>
+        <AccountCardSkeleton />
+        <AccountCardSkeleton />
+      </div>
+    );
+  }
 
   if (!loading && accounts.length === 0) {
     return (

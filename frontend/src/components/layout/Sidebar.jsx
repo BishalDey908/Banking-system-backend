@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { Avatar } from '../common/Avatar';
+import { Skeleton } from '../common/Skeleton';
 import { logoutUser } from '../../store/slices/authSlice';
 import { toggleDarkMode } from '../../store/slices/uiSlice';
 import { cn } from '../../utils/cn';
@@ -23,7 +24,7 @@ import { cn } from '../../utils/cn';
  */
 export function Sidebar({ mobileOpen = false, onCloseMobile }) {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
   const { darkMode } = useSelector((state) => state.ui);
 
   const navigationItems = [
@@ -121,22 +122,32 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }) {
 
       {/* User Profile & Logout */}
       <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={user?.name || 'User'} size="md" status="online" />
-          <div className="min-w-0">
-            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block truncate">
-              {user?.name || 'My Account'}
-            </span>
-            <span className="text-[11px] text-slate-400 block truncate font-mono">
-              {user?.email || 'user@aurabank.io'}
-            </span>
+        {authLoading && !user ? (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Skeleton variant="circular" className="w-9 h-9 shrink-0" />
+            <div className="space-y-1.5 min-w-0">
+              <Skeleton variant="text" className="w-24 h-3.5" />
+              <Skeleton variant="text" className="w-28 h-2.5" />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Avatar name={user?.name || 'User'} size="md" status="online" />
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block truncate">
+                {user?.name || 'My Account'}
+              </span>
+              <span className="text-[11px] text-slate-400 block truncate font-mono">
+                {user?.email || 'user@aurabank.io'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <button
           type="button"
           onClick={handleLogout}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
           title="Sign out"
         >
           <LogOut className="w-4 h-4" />

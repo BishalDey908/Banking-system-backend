@@ -16,6 +16,7 @@ import { Badge } from '../common/Badge';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
+import { TransactionRowSkeleton } from '../common/Skeleton';
 import { formatCurrency, formatDateShort } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 import { cn } from '../../utils/cn';
@@ -27,12 +28,14 @@ import { cn } from '../../utils/cn';
  * @param {Array<Object>} props.transactions - List of transaction items
  * @param {boolean} [props.showFilters=true] - Display search and filter toolbars
  * @param {number} [props.limit] - Cap the rendered row count
+ * @param {boolean} [props.loading=false] - Display skeleton rows during fetch
  * @param {string} [props.className='']
  */
 export function TransactionTable({
   transactions = [],
   showFilters = true,
   limit,
+  loading = false,
   className = '',
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,7 +156,27 @@ export function TransactionTable({
       )}
 
       {/* Table Content */}
-      {displayedList.length === 0 ? (
+      {loading ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-850/60 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <th className="py-3 px-4 sm:px-6 font-semibold">Transaction</th>
+                <th className="py-3 px-4 font-semibold hidden md:table-cell">Category</th>
+                <th className="py-3 px-4 font-semibold hidden sm:table-cell">Date</th>
+                <th className="py-3 px-4 font-semibold hidden lg:table-cell">Reference</th>
+                <th className="py-3 px-4 font-semibold">Status</th>
+                <th className="py-3 px-4 sm:px-6 font-semibold text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {[1, 2, 3, 4, 5].slice(0, limit || 5).map((n) => (
+                <TransactionRowSkeleton key={n} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : displayedList.length === 0 ? (
         <div className="p-8">
           <EmptyState
             title="No Transactions"

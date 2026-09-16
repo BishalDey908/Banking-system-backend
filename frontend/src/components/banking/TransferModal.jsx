@@ -6,6 +6,7 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Alert } from '../common/Alert';
+import { Skeleton } from '../common/Skeleton';
 import { sendTransfer } from '../../store/slices/transactionSlice';
 import { setTransferModalOpen } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
@@ -18,7 +19,7 @@ import { useToast } from '../../hooks/useToast';
 export function TransferModal() {
   const dispatch = useDispatch();
   const { isTransferModalOpen } = useSelector((state) => state.ui);
-  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
+  const { accounts, activeAccountId, loading: accountsLoading } = useSelector((state) => state.accounts);
   const { showSuccess } = useToast();
 
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId || '');
@@ -127,7 +128,14 @@ export function TransferModal() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Alert variant="danger" message={error} dismissible />}
 
-        {accountOptions.length > 0 ? (
+        {accountsLoading ? (
+          <div className="space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono block">
+              From Account
+            </span>
+            <Skeleton variant="rectangular" className="w-full h-10 rounded-lg" />
+          </div>
+        ) : accountOptions.length > 0 ? (
           <Select
             label="From Account"
             options={accountOptions}
@@ -161,7 +169,9 @@ export function TransferModal() {
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
               Amount (INR) <span className="text-rose-500">*</span>
             </label>
-            {currentAcc && (
+            {accountsLoading ? (
+              <Skeleton variant="text" className="w-24 h-3.5" />
+            ) : currentAcc ? (
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-slate-500 dark:text-slate-400">
                   Available: <strong className="font-mono text-slate-850 dark:text-slate-200">{formatCurrency(availableBalance, currentAcc.currency || 'INR')}</strong>
@@ -176,7 +186,7 @@ export function TransferModal() {
                   </button>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
 
           <Input

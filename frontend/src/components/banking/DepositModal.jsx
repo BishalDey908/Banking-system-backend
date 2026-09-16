@@ -6,6 +6,7 @@ import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Alert } from '../common/Alert';
+import { Skeleton } from '../common/Skeleton';
 import { depositFunds } from '../../store/slices/transactionSlice';
 import { setDepositModalOpen } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
@@ -17,7 +18,7 @@ import { useToast } from '../../hooks/useToast';
 export function DepositModal() {
   const dispatch = useDispatch();
   const { isDepositModalOpen } = useSelector((state) => state.ui);
-  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
+  const { accounts, activeAccountId, loading: accountsLoading } = useSelector((state) => state.accounts);
   const { actionLoading } = useSelector((state) => state.transactions);
   const { showSuccess } = useToast();
 
@@ -114,7 +115,14 @@ export function DepositModal() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Alert variant="danger" message={error} dismissible />}
 
-        {accountOptions.length > 0 ? (
+        {accountsLoading ? (
+          <div className="space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono block">
+              Deposit into Account
+            </span>
+            <Skeleton variant="rectangular" className="w-full h-10 rounded-lg" />
+          </div>
+        ) : accountOptions.length > 0 ? (
           <Select
             label="Deposit into Account"
             options={accountOptions}

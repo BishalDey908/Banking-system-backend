@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Copy, Check, Wifi } from 'lucide-react';
 import { deriveCardNumber, maskCardNumber } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
+import { BankCardSkeleton } from '../common/Skeleton';
 import { cn } from '../../utils/cn';
 
 /**
@@ -13,6 +14,7 @@ import { cn } from '../../utils/cn';
  * @param {string} [props.currency='INR'] - Currency code
  * @param {'obsidian' | 'emerald' | 'sapphire'} [props.theme='obsidian'] - Card visual theme
  * @param {string} [props.className='']
+ * @param {boolean} [props.loading=false] - Show skeleton loader
  */
 export function BankCard({
   accountId = '',
@@ -20,7 +22,11 @@ export function BankCard({
   currency = 'INR',
   theme = 'obsidian',
   className = '',
+  loading = false,
 }) {
+  if (loading) {
+    return <BankCardSkeleton className={className} />;
+  }
   const [isRevealed, setIsRevealed] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { showSuccess } = useToast();

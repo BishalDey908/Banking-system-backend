@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Menu, Plus, ArrowUpRight, Sun, Moon } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Avatar } from '../common/Avatar';
+import { Skeleton } from '../common/Skeleton';
 import { setCreateAccountModalOpen, setTransferModalOpen, toggleDarkMode } from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
 import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
@@ -12,8 +13,8 @@ import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
  */
 export function Header({ onToggleMobileMenu, title = 'Dashboard' }) {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
+  const { accounts, activeAccountId, loading: accountsLoading } = useSelector((state) => state.accounts);
   const { darkMode } = useSelector((state) => state.ui);
 
   return (
@@ -31,16 +32,24 @@ export function Header({ onToggleMobileMenu, title = 'Dashboard' }) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</span>
           <span className="text-xs text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline font-mono">
-            Hi, {user?.name?.split(' ')[0] || 'there'}
-          </span>
+          {authLoading && !user ? (
+            <Skeleton variant="text" className="w-16 h-3 hidden sm:inline-block" />
+          ) : (
+            <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline font-mono">
+              Hi, {user?.name?.split(' ')[0] || 'there'}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Right: Account Switcher + Actions + Dark Mode Toggle + User */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Account Selector Pill */}
-        {accounts.length > 0 && (
+        {accountsLoading ? (
+          <div className="hidden md:flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs">
+            <Skeleton variant="text" className="w-28 h-3.5" />
+          </div>
+        ) : accounts.length > 0 ? (
           <div className="hidden md:flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs">
             <span className="text-slate-400 dark:text-slate-500 mr-1.5 uppercase font-mono text-[10px]">
               Account:
@@ -57,7 +66,7 @@ export function Header({ onToggleMobileMenu, title = 'Dashboard' }) {
               ))}
             </select>
           </div>
-        )}
+        ) : null}
 
         {/* Action: Open Account */}
         <Button
@@ -95,7 +104,11 @@ export function Header({ onToggleMobileMenu, title = 'Dashboard' }) {
         </button>
 
         {/* User Avatar */}
-        <Avatar name={user?.name || 'User'} size="sm" status="online" />
+        {authLoading && !user ? (
+          <Skeleton variant="circular" className="w-7 h-7" />
+        ) : (
+          <Avatar name={user?.name || 'User'} size="sm" status="online" />
+        )}
       </div>
     </header>
   );

@@ -1,0 +1,678 @@
+<!-- ==========================================================
+     PrepMed — Section 6: Testimonials (interactive)
+     TWO TABS, both video: Student Testimonials (default) → Parent Testimonials
+     Palette #0b474b / #fbd32c / #ecf6f6 — Inter type scale unchanged.
+
+     CHANGED IN THIS VERSION
+     ---------------------------------------------------------
+     • Playing a self-hosted clip no longer shows black bars around it.
+       The video is now `object-fit: contain` on a transparent background,
+       and an image fills whatever space the clip does not cover.
+     • Two ways to set that backdrop image, per card:
+         data-bg="https://…/backdrop.jpg"   explicit image (used if present)
+         nothing                            the card's own poster is reused,
+                                            blurred and dimmed behind the clip
+       YouTube embeds keep a black background — an iframe cannot be made
+       transparent, so there is nothing to show through.
+
+     HOW A VIDEO CARD WORKS
+     ---------------------------------------------------------
+        data-video="https://…/clip.mp4"   self-hosted file  (checked first)
+        data-yt="khNcXsy2L9c"             YouTube ID        (fallback)
+        data-bg="https://…/backdrop.jpg"  optional fill behind the clip
+     data-video and data-yt both empty = the card renders as a quiet
+     placeholder: no play badge, not clickable. Nothing loads until
+     someone presses play.
+     Always include the <img> poster — it is what visitors see before play.
+     ========================================================== -->
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    .s6-section-wrapper {
+        --primary-teal: #0b474b;
+        --accent-yellow: #fbd32c;
+        --bg-light: #ecf6f6;
+        --text-teal: #134a4d;
+        --white: #ffffff;
+        --shadow: 0 4px 20px rgba(11, 71, 75, 0.08);
+
+        padding: 60px 20px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    .s6-section-wrapper * { box-sizing: border-box; font-family: inherit; }
+
+    .s6-container { max-width: 1300px; margin: 0 auto; }
+
+    /* ---------- Header ---------- */
+    .s6-header-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 30px;
+        text-align: center !important;
+    }
+
+    .s6-badge {
+        display: inline-block;
+        border: 1px solid var(--accent-yellow);
+        color: var(--primary-teal);
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 6px 14px;
+        border-radius: 30px;
+        text-transform: uppercase;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.6);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* slow gold sweep — matches Sections 2, 3, 4, 5 and 7 */
+    .s6-badge::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -120%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(251, 211, 44, 0.6), transparent);
+        animation: s6-sweep 4.5s ease-in-out infinite;
+    }
+
+    @keyframes s6-sweep {
+        0%, 60% { left: -120%; }
+        100%    { left: 140%; }
+    }
+
+    .s6-main-heading {
+        font-size: 3.8rem;
+        font-weight: 700;
+        color: var(--primary-teal);
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .s6-sub {
+        font-size: 1.05rem;
+        color: var(--text-teal);
+        opacity: 0.85;
+        margin: 0 auto;
+        max-width: 640px;
+        line-height: 1.6;
+    }
+
+    /* ---------- Tabs with a sliding pill ---------- */
+    .s6-tabs {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 34px;
+    }
+
+    .s6-pill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 0;
+        width: 0;
+        border-radius: 30px;
+        background: var(--accent-yellow);
+        z-index: 0;
+        opacity: 0;
+        transition: transform 0.45s cubic-bezier(0.3, 1.2, 0.4, 1),
+                    width 0.45s cubic-bezier(0.3, 1.2, 0.4, 1),
+                    height 0.25s ease,
+                    opacity 0.25s ease;
+        pointer-events: none;
+    }
+
+    .s6-tab {
+        position: relative;
+        z-index: 1;
+        border: 1px solid rgba(11, 71, 75, 0.18);
+        background: var(--white);
+        color: var(--primary-teal);
+        font-size: 0.92rem;
+        font-weight: 600;
+        padding: 11px 22px;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+    }
+
+    .s6-tab:hover { transform: translateY(-2px); border-color: var(--accent-yellow); }
+
+    /* selected tab goes transparent so the pill shows through */
+    .s6-tab[aria-selected="true"] {
+        background: transparent;
+        border-color: transparent;
+    }
+
+    .s6-tab:focus-visible { outline: 3px solid var(--primary-teal); outline-offset: 2px; }
+
+    /* ---------- Panels ---------- */
+    .s6-panel { display: none; }
+    .s6-panel.is-active { display: block; }
+
+    .s6-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    /* cards start hidden; they animate in once the section is scrolled to,
+       and replay every time a tab is switched (display toggle restarts them) */
+    .s6-video { opacity: 0; }
+
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video {
+        animation: s6-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(1) { animation-delay: 0s; }
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(2) { animation-delay: 0.1s; }
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(3) { animation-delay: 0.2s; }
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(4) { animation-delay: 0.3s; }
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(5) { animation-delay: 0.4s; }
+    .s6-testimonials.is-in .s6-panel.is-active .s6-video:nth-child(6) { animation-delay: 0.5s; }
+
+    @keyframes s6-rise {
+        from { opacity: 0; transform: translateY(18px) scale(0.98); }
+        to   { opacity: 1; transform: none; }
+    }
+
+    /* ---------- Video card ---------- */
+    .s6-video {
+        background: var(--white);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+    }
+
+    .s6-video:hover { transform: translateY(-6px); box-shadow: 0 14px 32px rgba(11, 71, 75, 0.16); }
+
+    .s6-thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: linear-gradient(160deg, #14666c 0%, var(--primary-teal) 100%);
+        border: none;
+        padding: 0;
+        width: 100%;
+        cursor: pointer;
+        display: block;
+        overflow: hidden;
+    }
+
+    .s6-thumb img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+                    filter 0.5s ease;
+    }
+
+    .s6-thumb:hover img { transform: scale(1.06); }
+
+    .s6-thumb::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(11,71,75,0) 40%, rgba(11,71,75,0.55) 100%);
+    }
+
+    .s6-play {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--accent-yellow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 18px rgba(11, 71, 75, 0.35);
+        transition: transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    /* ring that pulses out of the play button on hover */
+    .s6-play::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 2px solid var(--accent-yellow);
+        opacity: 0;
+    }
+
+    .s6-thumb:hover .s6-play { transform: translate(-50%, -50%) scale(1.12); }
+    .s6-thumb:hover .s6-play::before { animation: s6-ping 1.5s ease-out infinite; }
+
+    @keyframes s6-ping {
+        0%   { opacity: 0.8; transform: scale(1); }
+        100% { opacity: 0;   transform: scale(1.75); }
+    }
+
+    .s6-thumb:focus-visible { outline: 3px solid var(--accent-yellow); outline-offset: -3px; }
+
+    .s6-play svg { width: 20px; height: 20px; fill: var(--primary-teal); margin-left: 3px; }
+
+    /* a card with no video URL yet — quiet, not clickable, no play badge */
+    .s6-thumb.is-empty { cursor: default; }
+    .s6-thumb.is-empty .s6-play { display: none; }
+    .s6-thumb.is-empty:hover img { transform: none; }
+    .s6-thumb.is-empty .s6-soon {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        color: var(--white);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        opacity: 0.75;
+    }
+
+    /* the running player — YouTube iframe OR a self-hosted <video> */
+    .s6-thumb iframe,
+    .s6-thumb video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        z-index: 3;
+    }
+
+    /* an iframe cannot be transparent, so YouTube keeps its black box */
+    .s6-thumb iframe { background: #000; }
+
+    /* the whole clip stays visible and the leftover space shows the backdrop */
+    .s6-thumb video {
+        background: transparent;
+        object-fit: contain;
+    }
+
+    /* backdrop image behind a playing clip — set data-bg="…" on the .s6-thumb */
+    .s6-vbg {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background-size: cover;
+        background-position: center;
+        pointer-events: none;
+    }
+
+    /* no data-bg supplied? the card's own poster fills in, blurred and dimmed.
+       Must stay AFTER the :hover img rule so it wins at equal specificity. */
+    .s6-thumb.is-playing img {
+        transform: scale(1.12);
+        filter: blur(18px) brightness(0.55);
+    }
+
+    /* hide the play badge and the dark veil while a video is running,
+       otherwise they sit on top of the native controls */
+    .s6-thumb.is-playing .s6-play,
+    .s6-thumb.is-playing::after { display: none; }
+
+    .s6-video-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .s6-video-title { font-weight: 700; color: var(--primary-teal); font-size: 1.05rem; margin: 0; line-height: 1.35; }
+    .s6-video-meta { font-size: 0.85rem; color: var(--text-teal); opacity: 0.85; margin: 0; }
+
+    /* ---------- Header reveal ---------- */
+    .s6-reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .s6-reveal.is-in { opacity: 1; transform: none; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1000px) {
+        .s6-grid { grid-template-columns: repeat(2, 1fr); }
+        .s6-main-heading { font-size: 2.8rem; }
+    }
+
+    @media (max-width: 640px) {
+        .s6-section-wrapper { padding: 45px 16px; }
+        .s6-grid { grid-template-columns: 1fr; gap: 18px; }
+        .s6-main-heading { font-size: 2.2rem; }
+        .s6-tab { font-size: 0.85rem; padding: 9px 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .s6-badge::after { animation: none; display: none; }
+        .s6-pill, .s6-tab, .s6-video, .s6-play, .s6-thumb img { transition: none; }
+        .s6-video { opacity: 1; }
+        .s6-testimonials.is-in .s6-panel.is-active .s6-video { animation: none; opacity: 1; }
+        .s6-thumb:hover .s6-play::before { animation: none; }
+        .s6-reveal { opacity: 1; transform: none; transition: none; }
+        /* backdrop still applies — it is a still image, not motion */
+        .s6-thumb.is-playing img { transform: none; filter: blur(18px) brightness(0.55); }
+    }
+</style>
+
+<div class="s6-section-wrapper">
+    <div class="s6-container">
+
+        <!-- Header -->
+        <div class="s6-header-row s6-reveal">
+            <!--<div class="s6-badge">Section 6</div>-->
+            <h2 class="s6-main-heading">Testimonials</h2>
+            <!--<p class="s6-sub">Hear it from the students who sat the exam and the parents who watched them prepare.</p>-->
+        </div>
+
+        <div class="s6-testimonials">
+
+            <!-- Tabs — order here must match the panel order below,
+                 the script pairs them by position. -->
+            <div class="s6-tabs" role="tablist" aria-label="Testimonial type">
+                <span class="s6-pill" aria-hidden="true"></span>
+                <button class="s6-tab" type="button" role="tab" aria-selected="true"  aria-controls="s6-p1" id="s6-t1">Student Testimonials</button>
+                <button class="s6-tab" type="button" role="tab" aria-selected="false" aria-controls="s6-p2" id="s6-t2">Parent Testimonials</button>
+            </div>
+
+            <!-- ============ PANEL 1 — Student videos (default) ============ -->
+            <div class="s6-panel is-active" id="s6-p1" role="tabpanel" aria-labelledby="s6-t1">
+                <div class="s6-grid">
+
+                    <!--
+                      To use one fixed image behind every clip, add the same
+                      data-bg="…" to each button below. Leave it off and the
+                      card's own poster fills the space instead.
+                    -->
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Spandan-Pal_Testimonial.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: Spandan Pal">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-19-163216.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Spandan Pal</h3>
+                            <!--<p class="s6-video-meta">NEET 2026 · 2 min</p>-->
+                        </div>
+                    </div>
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Ankita-Chowdhury_Testimonial.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: Ankita Chowdhury">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-19-161506.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Ankita Chowdhury</h3>
+                            <!--<p class="s6-video-meta">NEET 2026 · 469 marks</p>-->
+                        </div>
+                    </div>
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Mehek-Khatun_Testimonial.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: Mehek Khatun">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-19-162729.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Mehek Khatun</h3>
+                            <!--<p class="s6-video-meta">NEET 2026 · 3 min</p>-->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ============ PANEL 2 — Parent videos ============ -->
+            <div class="s6-panel" id="s6-p2" role="tabpanel" aria-labelledby="s6-t2">
+                <div class="s6-grid">
+
+                    <!--
+                      Each card takes its URLs from Media → Library ("Copy URL to clipboard"):
+                        data-video = the .mp4 file
+                        data-bg    = optional image shown behind the clip while it plays
+                        <img src>  = the poster/thumbnail image
+                      The /YYYY/MM/ folder is the month the file was uploaded, so it will not
+                      always be /2026/08/ — always copy the URL rather than typing it.
+                      Leave data-video="" and the card stays a quiet "Coming soon" placeholder.
+                    -->
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Parents_Testimonial_01.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: parent of Spandan Pal">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-27-135409.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Parent testimonial 1</h3>
+                            <!--<p class="s6-video-meta">Parent of — · Salt Lake centre</p>-->
+                        </div>
+                    </div>
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Parents_Testimonial_02.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: parent of Ankita Chowdhury">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-27-135639.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Parent testimonial 2</h3>
+                            <!--<p class="s6-video-meta">Parent of — · Hazra centre</p>-->
+                        </div>
+                    </div>
+
+                    <div class="s6-video">
+                        <button class="s6-thumb" type="button"
+                                data-video="https://institute.prepmed.in/wp-content/uploads/2026/08/Parents_Testimonial_03.mp4"
+                                data-bg="https://foundation.prepmed.in/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-09-at-4.16.14-PM.jpeg"
+                                aria-label="Play video testimonial: parent of Mehek Khatun">
+                            <img src="https://institute.prepmed.in/wp-content/uploads/2026/08/Screenshot-2026-08-27-135814.png" alt="">
+                            <span class="s6-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg></span>
+                        </button>
+                        <div class="s6-video-body">
+                            <h3 class="s6-video-title">Parent testimonial 3</h3>
+                            <!--<p class="s6-video-meta">Parent of — · Howrah centre</p>-->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function initTabs(root) {
+        if (root.dataset.s6Ready === '1') return;
+        root.dataset.s6Ready = '1';
+
+        var tabs   = Array.prototype.slice.call(root.querySelectorAll('.s6-tab'));
+        var panels = Array.prototype.slice.call(root.querySelectorAll('.s6-panel'));
+        var pill   = root.querySelector('.s6-pill');
+
+        /* move the yellow pill onto whichever tab is selected */
+        function movePill() {
+            if (!pill) return;
+            var active = root.querySelector('.s6-tab[aria-selected="true"]');
+            if (!active) return;
+            pill.style.width  = active.offsetWidth + 'px';
+            pill.style.height = active.offsetHeight + 'px';
+            pill.style.transform = 'translate(' + active.offsetLeft + 'px,' + active.offsetTop + 'px)';
+            pill.style.opacity = '1';
+        }
+
+        function select(i) {
+            tabs.forEach(function (t, n) { t.setAttribute('aria-selected', n === i ? 'true' : 'false'); });
+            panels.forEach(function (p, n) { p.classList.toggle('is-active', n === i); });
+            movePill();
+            stopAllVideos(root);
+        }
+
+        tabs.forEach(function (tab, i) {
+            tab.addEventListener('click', function () { select(i); });
+            tab.addEventListener('keydown', function (e) {
+                var n = null;
+                if (e.key === 'ArrowRight') n = (i + 1) % tabs.length;
+                if (e.key === 'ArrowLeft')  n = (i - 1 + tabs.length) % tabs.length;
+                if (n !== null) { e.preventDefault(); tabs[n].focus(); select(n); }
+            });
+        });
+
+        movePill();
+        window.addEventListener('resize', movePill);
+        /* re-measure once webfonts land, since tab widths change with them */
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(movePill);
+        setTimeout(movePill, 400);
+    }
+
+    /* stop and unload every player in the section, and clear its backdrop */
+    function stopAllVideos(root) {
+        /* YouTube iframes */
+        Array.prototype.forEach.call(root.querySelectorAll('.s6-thumb iframe'), function (f) {
+            var btn = f.parentNode;
+            f.remove();
+            if (btn) btn.classList.remove('is-playing');
+        });
+
+        /* self-hosted players — pause and clear src so buffering stops too */
+        Array.prototype.forEach.call(root.querySelectorAll('.s6-thumb video'), function (v) {
+            var btn = v.parentNode;
+            try { v.pause(); v.removeAttribute('src'); v.load(); } catch (err) {}
+            v.remove();
+            if (btn) btn.classList.remove('is-playing');
+        });
+
+        /* custom backdrop layers */
+        Array.prototype.forEach.call(root.querySelectorAll('.s6-vbg'), function (b) {
+            b.remove();
+        });
+    }
+
+    function initVideos(root) {
+        Array.prototype.forEach.call(root.querySelectorAll('.s6-thumb'), function (btn) {
+
+            var hasSource = !!((btn.getAttribute('data-video') || '').trim() ||
+                               (btn.getAttribute('data-yt')    || '').trim());
+
+            /* no URL yet — mark it, label it, and leave it alone */
+            if (!hasSource) {
+                btn.classList.add('is-empty');
+                btn.setAttribute('aria-disabled', 'true');
+                if (!btn.querySelector('.s6-soon')) {
+                    var soon = document.createElement('span');
+                    soon.className = 's6-soon';
+                    soon.textContent = 'Coming soon';
+                    btn.appendChild(soon);
+                }
+                return;
+            }
+
+            btn.addEventListener('click', function () {
+                /* already playing in this card? leave it alone */
+                if (btn.querySelector('video, iframe')) return;
+
+                var fileUrl = (btn.getAttribute('data-video') || '').trim();
+                var ytId    = (btn.getAttribute('data-yt') || '').trim();
+                var bgUrl   = (btn.getAttribute('data-bg') || '').trim();
+
+                stopAllVideos(root);                   /* only one plays at a time */
+
+                var label = btn.getAttribute('aria-label') || 'Video testimonial';
+
+                if (fileUrl) {
+                    /* ---- backdrop behind the clip, instead of black bars ----
+                       With data-bg set, that image covers the card. Without it,
+                       the CSS blurs the poster underneath and that shows through. */
+                    if (bgUrl) {
+                        var bg = document.createElement('span');
+                        bg.className = 's6-vbg';
+                        bg.style.backgroundImage = 'url("' + bgUrl + '")';
+                        btn.appendChild(bg);
+                    }
+
+                    /* ---- self-hosted file ----
+                       No poster is set on the <video>: the card's own <img> is
+                       already behind it and a poster would cover the backdrop. */
+                    var v = document.createElement('video');
+                    v.src         = fileUrl;
+                    v.controls    = true;
+                    v.autoplay    = true;
+                    v.playsInline = true;
+                    v.preload     = 'auto';
+                    v.setAttribute('playsinline', '');           /* older iOS attribute form */
+                    btn.appendChild(v);
+                    /* the click is the user gesture, so sound is allowed */
+                    var p = v.play();
+                    if (p && p.catch) p.catch(function () { /* blocked: controls are visible */ });
+                } else {
+                    /* ---- YouTube ---- */
+                    var f = document.createElement('iframe');
+                    f.src   = 'https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1&rel=0';
+                    f.title = label;
+                    f.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+                    f.setAttribute('allowfullscreen', '');
+                    btn.appendChild(f);
+                }
+
+                btn.classList.add('is-playing');
+            });
+        });
+    }
+
+    function initReveal() {
+        var targets = Array.prototype.slice.call(
+            document.querySelectorAll('.s6-reveal, .s6-testimonials')
+        );
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (reduced || !('IntersectionObserver' in window)) {
+            targets.forEach(function (el) { el.classList.add('is-in'); });
+            return;
+        }
+
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+        targets.forEach(function (el) { io.observe(el); });
+    }
+
+    function boot() {
+        Array.prototype.forEach.call(document.querySelectorAll('.s6-testimonials'), function (root) {
+            initTabs(root);
+            initVideos(root);
+        });
+        initReveal();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+})();
+</script>
+<!-- ================= /Section 6 — Testimonials ================= -->

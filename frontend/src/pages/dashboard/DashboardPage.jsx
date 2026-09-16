@@ -14,6 +14,7 @@ import { BankCard } from '../../components/banking/BankCard';
 import { QuickActions } from '../../components/banking/QuickActions';
 import { AccountList } from '../../components/banking/AccountList';
 import { TransactionTable } from '../../components/banking/TransactionTable';
+import { Skeleton } from '../../components/common/Skeleton';
 import {
   setCreateAccountModalOpen,
   setTransferModalOpen,
@@ -28,11 +29,13 @@ import { formatCurrency } from '../../utils/formatters';
  */
 export function DashboardPage() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
   const { accounts, activeAccountId, loading: accountsLoading } = useSelector(
     (state) => state.accounts
   );
-  const { items: transactions } = useSelector((state) => state.transactions);
+  const { items: transactions, loading: transactionsLoading } = useSelector(
+    (state) => state.transactions
+  );
 
   // Fetch real ledger transactions from backend on mount
   useEffect(() => {
@@ -73,8 +76,13 @@ export function DashboardPage() {
     <div className="space-y-6 sm:space-y-8">
       {/* Simple Greeting */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-          Welcome back, {user?.name?.split(' ')[0] || 'there'}
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2 flex-wrap">
+          <span>Welcome back,</span>
+          {authLoading && !user ? (
+            <Skeleton variant="text" className="w-24 sm:w-32 h-7 rounded inline-block" />
+          ) : (
+            <span>{user?.name?.split(' ')[0] || 'there'}</span>
+          )}
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Here is a summary of your money and recent activity.
@@ -90,6 +98,7 @@ export function DashboardPage() {
           changeType="positive"
           icon={<Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
           subtitle="Available in all accounts"
+          loading={accountsLoading || transactionsLoading}
         />
 
         <StatCard
@@ -99,6 +108,7 @@ export function DashboardPage() {
           changeType="positive"
           icon={<ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
           subtitle="Total received"
+          loading={transactionsLoading}
         />
 
         <StatCard
@@ -108,6 +118,7 @@ export function DashboardPage() {
           changeType="negative"
           icon={<ArrowUpRight className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
           subtitle="Total spent"
+          loading={transactionsLoading}
         />
 
         <StatCard
@@ -116,6 +127,7 @@ export function DashboardPage() {
           suffix="Active"
           icon={<Landmark className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
           subtitle={accounts.length > 0 ? 'Primary account ready' : 'No accounts opened'}
+          loading={accountsLoading}
         />
       </div>
 
@@ -132,6 +144,7 @@ export function DashboardPage() {
             cardholderName={user?.name || 'Account Holder'}
             currency={activeAccount?.currency || 'INR'}
             theme="obsidian"
+            loading={accountsLoading}
           />
         </div>
 
@@ -198,7 +211,12 @@ export function DashboardPage() {
           </Link>
         </div>
 
-        <TransactionTable transactions={transactions} limit={5} showFilters={true} />
+        <TransactionTable
+          transactions={transactions}
+          limit={5}
+          showFilters={true}
+          loading={transactionsLoading}
+        />
       </div>
     </div>
   );

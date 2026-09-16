@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card } from './Card';
+import { StatCardSkeleton } from './Skeleton';
 import { cn } from '../../utils/cn';
 
 /**
@@ -17,6 +18,7 @@ import { cn } from '../../utils/cn';
  * @param {string} [props.subtitle] - Clarifying note or timeframe
  * @param {Function} [props.onClick]
  * @param {string} [props.className='']
+ * @param {boolean} [props.loading=false] - Whether to show skeleton loader
  */
 export function StatCard({
   label,
@@ -29,7 +31,11 @@ export function StatCard({
   subtitle,
   onClick,
   className = '',
+  loading = false,
 }) {
+  if (loading) {
+    return <StatCardSkeleton className={className} />;
+  }
   const trendConfig = {
     positive: {
       color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/60 dark:border-emerald-800/60',

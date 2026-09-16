@@ -5,6 +5,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Avatar } from '../../components/common/Avatar';
+import { Skeleton } from '../../components/common/Skeleton';
 import { logoutUser } from '../../store/slices/authSlice';
 import { toggleDarkMode } from '../../store/slices/uiSlice';
 import { useToast } from '../../hooks/useToast';
@@ -14,7 +15,7 @@ import { useToast } from '../../hooks/useToast';
  */
 export function SettingsPage() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
   const { darkMode } = useSelector((state) => state.ui);
   const { showSuccess, showInfo } = useToast();
 
@@ -46,47 +47,74 @@ export function SettingsPage() {
 
       {/* User Profile Card */}
       <Card padding="lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-4">
-            <Avatar name={user?.name || 'User'} size="xl" status="online" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{user?.name || 'Account Holder'}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user?.email || 'user@aurabank.io'}</p>
-              <div className="mt-2">
-                <Badge variant="emerald" dot size="sm">Verified Account</Badge>
+        {authLoading && !user ? (
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-4">
+                <Skeleton variant="circular" className="w-14 h-14" />
+                <div className="space-y-2">
+                  <Skeleton variant="text" className="w-36 h-5" />
+                  <Skeleton variant="text" className="w-44 h-3.5" />
+                  <Skeleton variant="rectangular" className="w-24 h-5 rounded-full" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 text-xs">
+              <div className="space-y-1.5">
+                <Skeleton variant="text" className="w-16 h-3" />
+                <Skeleton variant="rectangular" className="w-32 h-6 rounded" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="text" className="w-20 h-3" />
+                <Skeleton variant="text" className="w-40 h-4" />
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Profile Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 text-xs">
+        ) : (
           <div>
-            <span className="text-slate-400 dark:text-slate-500 block mb-1 uppercase font-mono text-[10px]">
-              User ID
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-medium text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                {user?._id || '68c71f92e01b34a9'}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyUserId}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
-                title="Copy User ID"
-              >
-                {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-4">
+                <Avatar name={user?.name || 'User'} size="xl" status="online" />
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{user?.name || 'Account Holder'}</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user?.email || 'user@aurabank.io'}</p>
+                  <div className="mt-2">
+                    <Badge variant="emerald" dot size="sm">Verified Account</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 text-xs">
+              <div>
+                <span className="text-slate-400 dark:text-slate-500 block mb-1 uppercase font-mono text-[10px]">
+                  User ID
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                    {user?._id || '68c71f92e01b34a9'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyUserId}
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+                    title="Copy User ID"
+                  >
+                    {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-400 dark:text-slate-500 block mb-1 uppercase font-mono text-[10px]">
+                  Email Address
+                </span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{user?.email || 'user@domain.com'}</span>
+              </div>
             </div>
           </div>
-
-          <div>
-            <span className="text-slate-400 dark:text-slate-500 block mb-1 uppercase font-mono text-[10px]">
-              Email Address
-            </span>
-            <span className="font-mono text-slate-800 dark:text-slate-200">{user?.email || 'user@domain.com'}</span>
-          </div>
-        </div>
+        )}
       </Card>
 
       {/* Preferences & Theme Card */}

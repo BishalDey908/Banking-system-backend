@@ -6,6 +6,7 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { AccountList } from '../../components/banking/AccountList';
 import { BankCard } from '../../components/banking/BankCard';
+import { AccountDetailsSkeleton } from '../../components/common/Skeleton';
 import { setCreateAccountModalOpen, setTransferModalOpen } from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
 import { formatDate, formatCurrency } from '../../utils/formatters';
@@ -99,7 +100,9 @@ export function AccountsPage() {
             Account Details
           </span>
 
-          {activeAccount ? (
+          {loading ? (
+            <AccountDetailsSkeleton />
+          ) : activeAccount ? (
             <Card padding="md" className="space-y-5">
               {/* Virtual Card Preview */}
               <div className="flex justify-center">

@@ -11,7 +11,7 @@ import { formatCurrency } from '../../utils/formatters';
  */
 export function ActivityPage() {
   const dispatch = useDispatch();
-  const { items: transactions } = useSelector((state) => state.transactions);
+  const { items: transactions, loading } = useSelector((state) => state.transactions);
 
   useEffect(() => {
     dispatch(fetchTransactions());
@@ -53,6 +53,7 @@ export function ActivityPage() {
           changeType="positive"
           icon={<ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
           subtitle="All incoming funds"
+          loading={loading}
         />
 
         <StatCard
@@ -61,6 +62,7 @@ export function ActivityPage() {
           changeType="negative"
           icon={<ArrowUpRight className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
           subtitle="All outgoing transfers"
+          loading={loading}
         />
 
         <StatCard
@@ -69,6 +71,7 @@ export function ActivityPage() {
           suffix="Total"
           icon={<History className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
           subtitle="Lifetime records"
+          loading={loading}
         />
       </div>
 
@@ -77,7 +80,7 @@ export function ActivityPage() {
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono block">
           All Transactions
         </span>
-        <TransactionTable transactions={transactions} showFilters={true} />
+        <TransactionTable transactions={transactions} showFilters={true} loading={loading} />
       </div>
     </div>
   );
