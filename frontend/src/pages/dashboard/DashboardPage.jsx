@@ -19,6 +19,8 @@ import {
   setCreateAccountModalOpen,
   setTransferModalOpen,
   setDepositModalOpen,
+  setQrScannerModalOpen,
+  setReceiveQrModalOpen,
 } from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
 import { fetchTransactions } from '../../store/slices/transactionSlice';
@@ -155,13 +157,11 @@ export function DashboardPage() {
               Quick Actions
             </span>
             <QuickActions
+              onOpenQrScanner={() => dispatch(setQrScannerModalOpen(true))}
+              onOpenReceiveQr={() => dispatch(setReceiveQrModalOpen(true))}
               onOpenTransferModal={() => dispatch(setTransferModalOpen(true))}
               onOpenDepositModal={() => dispatch(setDepositModalOpen(true))}
               onOpenCreateModal={() => dispatch(setCreateAccountModalOpen(true))}
-              onExportStatement={() => {
-                const btn = document.querySelector('button[title="CSV"]');
-                btn?.click();
-              }}
             />
           </div>
 

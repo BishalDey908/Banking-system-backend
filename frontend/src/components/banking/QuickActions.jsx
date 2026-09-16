@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, ArrowUpRight, ArrowDownLeft, Download } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, ArrowDownLeft, Download, QrCode } from 'lucide-react';
 import { Card } from '../common/Card';
 import { cn } from '../../utils/cn';
 
@@ -10,16 +10,31 @@ export function QuickActions({
   onOpenCreateModal,
   onOpenTransferModal,
   onOpenDepositModal,
+  onOpenQrScanner,
+  onOpenReceiveQr,
   onExportStatement,
   className = '',
 }) {
   const actions = [
     {
-      label: 'Send Money',
-      description: 'Transfer instantly',
-      icon: <ArrowUpRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
-      onClick: onOpenTransferModal,
+      label: 'Scan & Pay',
+      description: 'Scan UPI QR code',
+      icon: <QrCode className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
+      onClick: onOpenQrScanner || onOpenTransferModal,
       highlight: true,
+    },
+    {
+      label: 'Receive QR',
+      description: 'My scannable QR',
+      icon: <QrCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />,
+      onClick: onOpenReceiveQr,
+      highlight: false,
+    },
+    {
+      label: 'Send Money',
+      description: 'UPI or Bank account',
+      icon: <ArrowUpRight className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
+      onClick: onOpenTransferModal,
     },
     {
       label: 'Deposit Funds',
@@ -33,16 +48,11 @@ export function QuickActions({
       icon: <PlusCircle className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
       onClick: onOpenCreateModal,
     },
-    {
-      label: 'Download CSV',
-      description: 'Export statement',
-      icon: <Download className="w-5 h-5 text-slate-700 dark:text-slate-300" />,
-      onClick: onExportStatement,
-    },
   ];
 
   return (
-    <div className={cn('grid grid-cols-2 sm:grid-cols-4 gap-3', className)}>
+    // <div className={cn('grid grid-cols-2 sm:grid-cols-4 gap-3', className)}>
+    <div className={cn('grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3', className)}>
       {actions.map((action, index) => (
         <Card
           key={index}

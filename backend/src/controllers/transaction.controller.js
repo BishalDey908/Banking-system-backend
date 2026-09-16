@@ -1,6 +1,89 @@
 const mongoose = require('mongoose');
 const accountModel = require('../models/account.model');
+const userModel = require('../models/user.model');
 const transactionModel = require('../models/transaction.model');
+
+/**
+ * Resolves an internal Aura Bank account from any supported recipient format:
+ * 1. Direct MongoDB ObjectId string (e.g. '68c71f92e01b34a912345678')
+ * 2. Account-specific UPI ID (e.g. '68c71f92e01b34a912345678@aurabank' or '@aura')
+ * 3. User handle UPI ID (e.g. 'rahul@aurabank', 'rahul.sharma@aurabank')
+ * 4. User email address (e.g. 'rahul@gmail.com')
+ * 5. Full UPI URI string (e.g. 'upi://pay?pa=...&pn=...')
+ * 
+ * @param {string} recipientInput
+ * @returns {Promise<Object|null>} Account document or null
+ */
+async function resolveRecipientAccount(recipientInput) {
+    if (!recipientInput || typeof recipientInput !== 'string') return null;
+    let clean = recipientInput.trim();
+
+    // If raw UPI payment URI was provided, extract the 'pa' parameter
+    if (clean.toLowerCase().startsWith('upi://pay')) {
+        try {
+            const query = clean.includes('?') ? clean.split('?')[1] : '';
+            const params = new URLSearchParams(query);
+            if (params.get('pa')) {
+                clean = params.get('pa').trim();
+            }
+        } catch {
+            // Keep clean as-is
+        }
+    }
+
+    // A. Direct ObjectId match (no @)
+    if (mongoose.Types.ObjectId.isValid(clean) && !clean.includes('@')) {
+        const account = await accountModel.findById(clean);
+        if (account) return account;
+    }
+
+    // B. Handle @ handles (UPI ID / email)
+    if (clean.includes('@')) {
+        const [prefix, domain] = clean.split('@');
+        const trimmedPrefix = (prefix || '').trim();
+
+        // B1. Prefix is an account ObjectId (e.g. '68c71f92e01b34a912345678@aurabank')
+        if (mongoose.Types.ObjectId.isValid(trimmedPrefix)) {
+            const account = await accountModel.findById(trimmedPrefix);
+            if (account) return account;
+
+            // Could also be a user ObjectId
+            const userAcc = await accountModel.findOne({ user: trimmedPrefix, status: 'ACTIVE' }).sort({ createdAt: 1 });
+            if (userAcc) return userAcc;
+        }
+
+        // B2. Prefix is a username or email handle (e.g. 'rahul@aurabank' or full email 'rahul@gmail.com')
+        if (trimmedPrefix) {
+            // Check for user by exact email
+            let user = await userModel.findOne({ email: clean.toLowerCase() });
+
+            // If not found and domain is @aurabank / @aura / @upi, search by email prefix or name
+            if (!user && (!domain || /^(aurabank|aura|upi|paytm|okaxis|okhdfcbank)$/i.test(domain.toLowerCase()))) {
+                const escaped = trimmedPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                // Check if user's email starts with prefix
+                user = await userModel.findOne({
+                    email: new RegExp(`^${escaped}(@|$)`, 'i')
+                });
+
+                // Check by user name
+                if (!user) {
+                    user = await userModel.findOne({
+                        name: new RegExp(`^${escaped}$`, 'i')
+                    });
+                }
+            }
+
+            if (user) {
+                // Find receiver user's active account (prefer primary / oldest active account)
+                const userAcc = await accountModel.findOne({ user: user._id, status: 'ACTIVE' }).sort({ createdAt: 1 });
+                if (userAcc) return userAcc;
+            }
+        }
+    }
+
+    return null;
+}
+
 
 /**
  * ============================================================================
@@ -184,20 +267,18 @@ async function transferController(req, res) {
             });
         }
 
-        // 3. Pre-validate internal recipient if it matches a valid ObjectId
-        if (mongoose.Types.ObjectId.isValid(trimmedRecipient)) {
-            internalReceiver = await accountModel.findById(trimmedRecipient);
-            if (internalReceiver) {
-                if (internalReceiver.status !== 'ACTIVE') {
-                    return res.status(400).json({
-                        message: `Cannot transfer: Recipient bank account is currently ${internalReceiver.status}.`
-                    });
-                }
-                if (internalReceiver._id.toString() === senderAccount._id.toString()) {
-                    return res.status(400).json({
-                        message: "Cannot transfer money to the same bank account."
-                    });
-                }
+        // 3. Pre-validate internal recipient via direct ObjectId, account UPI ID, or handle
+        internalReceiver = await resolveRecipientAccount(trimmedRecipient);
+        if (internalReceiver) {
+            if (internalReceiver.status !== 'ACTIVE') {
+                return res.status(400).json({
+                    message: `Cannot transfer: Recipient bank account is currently ${internalReceiver.status}.`
+                });
+            }
+            if (internalReceiver._id.toString() === senderAccount._id.toString()) {
+                return res.status(400).json({
+                    message: "Cannot transfer money to the same bank account."
+                });
             }
         }
 
@@ -263,117 +344,117 @@ async function transferController(req, res) {
         });
 
     } catch (err) {
-        console.error("Transfer processing error encountered:", err.message);
+                console.error("Transfer processing error encountered:", err.message);
 
-        // AUTOMATIC REFUND & STOP REST OF PROCESS
-        if (senderDeducted && senderAccount) {
-            try {
-                // Step A: Roll back receiver balance if it was already credited
-                if (receiverCredited && internalReceiver) {
-                    internalReceiver.balance = roundMoney(internalReceiver.balance - numAmount);
-                    await internalReceiver.save();
+                // AUTOMATIC REFUND & STOP REST OF PROCESS
+                if (senderDeducted && senderAccount) {
+                    try {
+                        // Step A: Roll back receiver balance if it was already credited
+                        if (receiverCredited && internalReceiver) {
+                            internalReceiver.balance = roundMoney(internalReceiver.balance - numAmount);
+                            await internalReceiver.save();
+                        }
+
+                        // Step B: Refund the debited amount back to sender's balance
+                        senderAccount.balance = roundMoney(senderAccount.balance + numAmount);
+                        await senderAccount.save();
+
+                        // Step C: Record an audit CREDIT refund entry in the ledger
+                        const refundReference = `REF-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+                        const refundTransaction = await transactionModel.create({
+                            account: senderAccount._id,
+                            user: userId,
+                            type: 'CREDIT',
+                            amount: numAmount,
+                            currency: senderAccount.currency || 'INR',
+                            balanceAfter: senderAccount.balance,
+                            title: `Refund: Transfer Failed`,
+                            category: 'Refund',
+                            status: 'COMPLETED',
+                            reference: refundReference,
+                            recipientName: req.body?.recipientName ? String(req.body.recipientName).trim() : 'Recipient',
+                            recipientAccount: trimmedRecipient,
+                            note: `Automatic refund: Transfer failed and remaining process was stopped (${err.message})`
+                        });
+
+                        // Step D: Stop the rest of the process and notify the client
+                        return res.status(500).json({
+                            message: `Transfer failed: ${err.message}. The deducted amount (${senderAccount.currency || 'INR'} ${numAmount.toFixed(2)}) has been refunded to your account.`,
+                            error: err.message,
+                            refunded: true,
+                            refundAmount: numAmount,
+                            newBalance: senderAccount.balance,
+                            transaction: refundTransaction
+                        });
+
+                    } catch (refundErr) {
+                        console.error("CRITICAL: Automatic refund encountered an error:", refundErr);
+                        return res.status(500).json({
+                            message: "Transfer failed and automatic refund encountered an error. Please contact support immediately.",
+                            error: refundErr.message,
+                            refunded: false
+                        });
+                    }
                 }
 
-                // Step B: Refund the debited amount back to sender's balance
-                senderAccount.balance = roundMoney(senderAccount.balance + numAmount);
-                await senderAccount.save();
-
-                // Step C: Record an audit CREDIT refund entry in the ledger
-                const refundReference = `REF-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
-                const refundTransaction = await transactionModel.create({
-                    account: senderAccount._id,
-                    user: userId,
-                    type: 'CREDIT',
-                    amount: numAmount,
-                    currency: senderAccount.currency || 'INR',
-                    balanceAfter: senderAccount.balance,
-                    title: `Refund: Transfer Failed`,
-                    category: 'Refund',
-                    status: 'COMPLETED',
-                    reference: refundReference,
-                    recipientName: req.body?.recipientName ? String(req.body.recipientName).trim() : 'Recipient',
-                    recipientAccount: trimmedRecipient,
-                    note: `Automatic refund: Transfer failed and remaining process was stopped (${err.message})`
-                });
-
-                // Step D: Stop the rest of the process and notify the client
-                return res.status(500).json({
-                    message: `Transfer failed: ${err.message}. The deducted amount (${senderAccount.currency || 'INR'} ${numAmount.toFixed(2)}) has been refunded to your account.`,
+                // If sender was never debited, stop and return the error
+                res.status(500).json({
+                    message: "Error processing transfer: " + err.message,
                     error: err.message,
-                    refunded: true,
-                    refundAmount: numAmount,
-                    newBalance: senderAccount.balance,
-                    transaction: refundTransaction
-                });
-
-            } catch (refundErr) {
-                console.error("CRITICAL: Automatic refund encountered an error:", refundErr);
-                return res.status(500).json({
-                    message: "Transfer failed and automatic refund encountered an error. Please contact support immediately.",
-                    error: refundErr.message,
                     refunded: false
                 });
             }
         }
 
-        // If sender was never debited, stop and return the error
-        res.status(500).json({
-            message: "Error processing transfer: " + err.message,
-            error: err.message,
-            refunded: false
-        });
-    }
-}
+        /**
+         * Get all ledger transactions for a specific account
+         * @route GET /api/transactions/account/:accountId
+         */
+        async function getAccountTransactionsController(req, res) {
+            try {
+                const userId = req.user._id;
+                const { accountId } = req.params;
 
-/**
- * Get all ledger transactions for a specific account
- * @route GET /api/transactions/account/:accountId
- */
-async function getAccountTransactionsController(req, res) {
-    try {
-        const userId = req.user._id;
-        const { accountId } = req.params;
+                // Verify user owns the account
+                const account = await accountModel.findOne({ _id: accountId, user: userId });
+                if (!account) {
+                    return res.status(404).json({ message: "Account not found or access denied." });
+                }
 
-        // Verify user owns the account
-        const account = await accountModel.findOne({ _id: accountId, user: userId });
-        if (!account) {
-            return res.status(404).json({ message: "Account not found or access denied." });
+                const transactions = await transactionModel
+                    .find({ account: accountId })
+                    .sort({ createdAt: -1 });
+
+                res.status(200).json(transactions);
+            } catch (err) {
+                console.error("Fetch account transactions error:", err);
+                res.status(500).json({ message: "Error fetching transactions", error: err.message });
+            }
         }
 
-        const transactions = await transactionModel
-            .find({ account: accountId })
-            .sort({ createdAt: -1 });
+        /**
+         * Get all transactions across all accounts for the authenticated user
+         * @route GET /api/transactions
+         */
+        async function getUserTransactionsController(req, res) {
+            try {
+                const userId = req.user._id;
 
-        res.status(200).json(transactions);
-    } catch (err) {
-        console.error("Fetch account transactions error:", err);
-        res.status(500).json({ message: "Error fetching transactions", error: err.message });
-    }
-}
+                const transactions = await transactionModel
+                    .find({ user: userId })
+                    .sort({ createdAt: -1 });
 
-/**
- * Get all transactions across all accounts for the authenticated user
- * @route GET /api/transactions
- */
-async function getUserTransactionsController(req, res) {
-    try {
-        const userId = req.user._id;
+                res.status(200).json(transactions);
+            } catch (err) {
+                console.error("Fetch user transactions error:", err);
+                res.status(500).json({ message: "Error fetching user transactions", error: err.message });
+            }
+        }
 
-        const transactions = await transactionModel
-            .find({ user: userId })
-            .sort({ createdAt: -1 });
-
-        res.status(200).json(transactions);
-    } catch (err) {
-        console.error("Fetch user transactions error:", err);
-        res.status(500).json({ message: "Error fetching user transactions", error: err.message });
-    }
-}
-
-module.exports = {
-    depositController,
-    transferController,
-    getAccountTransactionsController,
-    getUserTransactionsController
-};
+        module.exports = {
+            depositController,
+            transferController,
+            getAccountTransactionsController,
+            getUserTransactionsController
+        };
 

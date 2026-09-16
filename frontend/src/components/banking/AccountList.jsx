@@ -1,10 +1,13 @@
 import React from 'react';
-import { Landmark, Plus, Copy, Check } from 'lucide-react';
+// import { Landmark, Plus, Copy, Check } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { Landmark, Plus, Copy, Check, QrCode } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
 import { AccountCardSkeleton } from '../common/Skeleton';
+import { setReceiveQrModalOpen, setReceiveQrAccountId } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatDateShort, formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 import { cn } from '../../utils/cn';
@@ -20,6 +23,7 @@ export function AccountList({
   loading = false,
   className = '',
 }) {
+  const dispatch = useDispatch();
   const { showSuccess } = useToast();
   const [copiedId, setCopiedId] = React.useState(null);
 
@@ -120,6 +124,18 @@ export function AccountList({
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch(setReceiveQrAccountId(acc._id));
+                        dispatch(setReceiveQrModalOpen(true));
+                      }}
+                      className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 p-0.5 rounded transition-colors"
+                      title="Show Receiver QR Code"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   <span className="text-[11px] text-slate-400 dark:text-slate-500 block font-mono">

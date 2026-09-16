@@ -1,4 +1,13 @@
 const mongoose = require("mongoose");
+const path = require("path");
+
+// Ensure environment variables are loaded if not already present
+if (!process.env.DB_CONNECTION_STRING) {
+    require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+    if (!process.env.DB_CONNECTION_STRING) {
+        require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
+    }
+}
 
 let isConnecting = false;
 
@@ -14,8 +23,9 @@ const connectTODB = async () => {
 
     const uri = process.env.DB_CONNECTION_STRING;
     if (!uri) {
-        console.warn("DB_CONNECTION_STRING environment variable is not defined");
-        return;
+        const errorMsg = "DB_CONNECTION_STRING environment variable is not defined. Please verify that .env exists in backend/ or the project root.";
+        console.error(errorMsg);
+        throw new Error(errorMsg);
     }
 
     try {

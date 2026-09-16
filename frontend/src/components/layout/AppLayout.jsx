@@ -5,6 +5,8 @@ import { Header } from './Header';
 import { CreateAccountModal } from '../banking/CreateAccountModal';
 import { TransferModal } from '../banking/TransferModal';
 import { DepositModal } from '../banking/DepositModal';
+import { QrScannerModal } from '../banking/QrScannerModal';
+import { ReceiveQrModal } from '../banking/ReceiveQrModal';
 import { ToastContainer } from '../common/ToastContainer';
 
 /**
@@ -56,6 +58,8 @@ export function AppLayout() {
       <CreateAccountModal />
       <TransferModal />
       <DepositModal />
+      <QrScannerModal />
+      <ReceiveQrModal />
       <ToastContainer />
     </div>
   );

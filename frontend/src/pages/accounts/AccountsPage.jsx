@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, Copy, Check } from 'lucide-react';
+import { Plus, Copy, Check, QrCode } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { AccountList } from '../../components/banking/AccountList';
 import { BankCard } from '../../components/banking/BankCard';
 import { AccountDetailsSkeleton } from '../../components/common/Skeleton';
-import { setCreateAccountModalOpen, setTransferModalOpen } from '../../store/slices/uiSlice';
+import {
+  setCreateAccountModalOpen,
+  setTransferModalOpen,
+  setReceiveQrModalOpen,
+  setReceiveQrAccountId,
+} from '../../store/slices/uiSlice';
 import { setActiveAccount } from '../../store/slices/accountSlice';
 import { formatDate, formatCurrency } from '../../utils/formatters';
+import { getAccountUpiId } from '../../utils/upi';
 import { useToast } from '../../hooks/useToast';
 
 /**
@@ -23,6 +29,7 @@ export function AccountsPage() {
 
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const activeAccount =
     accounts.find((a) => a._id === activeAccountId) || accounts[0] || null;
@@ -38,6 +45,14 @@ export function AccountsPage() {
     setCopiedId(true);
     showSuccess('Account ID copied');
     setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const handleCopyUpi = (upiId) => {
+    if (!upiId) return;
+    navigator.clipboard.writeText(upiId);
+    setCopiedUpi(true);
+    showSuccess('Receiver UPI ID copied');
+    setTimeout(() => setCopiedUpi(false), 2000);
   };
 
   return (
@@ -125,10 +140,31 @@ export function AccountsPage() {
                     <button
                       type="button"
                       onClick={() => handleCopyFullId(activeAccount._id)}
-                      className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                       title="Copy ID"
                     >
                       {copiedId ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-slate-500 dark:text-slate-400">Account UPI ID</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400 truncate max-w-[160px] sm:max-w-[200px]">
+                      {getAccountUpiId(activeAccount, user)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyUpi(getAccountUpiId(activeAccount, user))}
+                      className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Copy Receiver UPI ID"
+                    >
+                      {copiedUpi ? (
                         <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
@@ -164,15 +200,27 @@ export function AccountsPage() {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-2">
+              {/* Action Buttons */}
+              <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  onClick={() => {
+                    dispatch(setReceiveQrAccountId(activeAccount._id));
+                    dispatch(setReceiveQrModalOpen(true));
+                  }}
+                  leftIcon={<QrCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                >
+                  Receive / QR Code
+                </Button>
                 <Button
                   variant="primary"
                   size="md"
                   fullWidth
                   onClick={() => dispatch(setTransferModalOpen(true))}
                 >
-                  Send Money from This Account
+                  Send Money
                 </Button>
               </div>
             </Card>

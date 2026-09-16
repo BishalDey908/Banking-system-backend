@@ -18,6 +18,10 @@ const uiSlice = createSlice({
     isCreateAccountModalOpen: false,
     isTransferModalOpen: false,
     isDepositModalOpen: false,
+    isQrScannerModalOpen: false,
+    qrScannedData: null,
+    isReceiveQrModalOpen: false,
+    receiveQrAccountId: null,
     isSidebarCollapsed: false,
     toasts: [],
   },
@@ -39,6 +43,18 @@ const uiSlice = createSlice({
     },
     setDepositModalOpen: (state, action) => {
       state.isDepositModalOpen = action.payload;
+    },
+    setQrScannerModalOpen: (state, action) => {
+      state.isQrScannerModalOpen = action.payload;
+    },
+    setQrScannedData: (state, action) => {
+      state.qrScannedData = action.payload;
+    },
+    setReceiveQrModalOpen: (state, action) => {
+      state.isReceiveQrModalOpen = action.payload;
+    },
+    setReceiveQrAccountId: (state, action) => {
+      state.receiveQrAccountId = action.payload;
     },
     toggleSidebar: (state) => {
       state.isSidebarCollapsed = !state.isSidebarCollapsed;
@@ -62,6 +78,10 @@ export const {
   setCreateAccountModalOpen,
   setTransferModalOpen,
   setDepositModalOpen,
+  setQrScannerModalOpen,
+  setQrScannedData,
+  setReceiveQrModalOpen,
+  setReceiveQrAccountId,
   toggleSidebar,
   setSidebarCollapsed,
   addToast,
