@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const accountModel = require("../models/account.model");
 const transactionModel = require("../models/transaction.model");
 const emailService = require("../services/email.service");
+const cacheService = require("../services/cache.service");
 
 async function userRegisterController(req, res) {
     const { email, password, name } = req.body;
@@ -83,16 +84,33 @@ async function userLoginController(req, res) {
 }
 
 async function userMeController(req, res) {
-    res.status(200).json({
+    const userId = req.user._id;
+    const cacheKey = `cache:user:${userId}:profile`;
+
+    // 1. Cache-Aside: Check Redis cache first
+    const cachedProfile = await cacheService.get(cacheKey);
+    if (cachedProfile) {
+        return res.status(200).json(cachedProfile);
+    }
+
+    const payload = {
         user: {
             _id: req.user._id,
             email: req.user.email,
             name: req.user.name
         }
-    });
+    };
+
+    // 2. Populate cache with 10-minute TTL (600 seconds)
+    await cacheService.set(cacheKey, payload, 600);
+
+    res.status(200).json(payload);
 }
 
 async function userLogoutController(req, res) {
+    if (req.user?._id) {
+        await cacheService.del(`cache:user:${req.user._id}:profile`);
+    }
     res.clearCookie("token");
     res.status(200).json({
         message: "Logged out successfully"

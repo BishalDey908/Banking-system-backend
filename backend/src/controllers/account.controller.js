@@ -1,5 +1,6 @@
 const accountModel = require('../models/account.model');
 const transactionModel = require('../models/transaction.model');
+const cacheService = require('../services/cache.service');
 
 async function createAccountController(req, res) {
     try {
@@ -31,6 +32,10 @@ async function createAccountController(req, res) {
             console.warn("Failed to create opening ledger entry:", txErr.message);
         }
 
+        // Invalidate user accounts & financials cache in Redis
+        await cacheService.invalidateUserFinancials(userId, account._id);
+        console.log(`[Cache INVALIDATE] 🗑️  Purged Redis accounts cache for user: ${userId}`);
+
         res.status(201).json(account);
     }
     catch (err) {
@@ -41,7 +46,22 @@ async function createAccountController(req, res) {
 async function getUserAccountsController(req, res) {
     try {
         const userId = req.user._id || req.user;
+        const cacheKey = `cache:user:${userId}:accounts`;
+
+        // 1. Cache-Aside: Check Redis cache first
+        const cachedAccounts = await cacheService.get(cacheKey);
+        if (cachedAccounts) {
+            console.log(`[Cache HIT] ⚡ Loaded accounts from Redis for user: ${userId}`);
+            return res.status(200).json(cachedAccounts);
+        }
+
+        // 2. Cache Miss: Query MongoDB
         const accounts = await accountModel.find({ user: userId }).sort({ createdAt: -1 });
+
+        // 3. Populate Redis cache with 5-minute TTL (300 seconds)
+        await cacheService.set(cacheKey, accounts, 300);
+        console.log(`[Cache MISS] 🐢 Fetched from MongoDB -> Cached in Redis for user: ${userId}`);
+
         res.status(200).json(accounts);
     } catch (err) {
         res.status(500).json({ message: "Error fetching accounts.", error: err });

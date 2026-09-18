@@ -3,6 +3,7 @@ const accountModel = require('../models/account.model');
 const userModel = require('../models/user.model');
 const transactionModel = require('../models/transaction.model');
 const emailService = require('../services/email.service');
+const cacheService = require('../services/cache.service');
 
 /**
  * Resolves an internal Aura Bank account from any supported recipient format:
@@ -202,6 +203,9 @@ async function depositController(req, res) {
             }).catch(() => {});
         }
 
+        // Invalidate user accounts, balance, and transaction cache in Redis
+        await cacheService.invalidateUserFinancials(userId, accountId);
+
         res.status(201).json({
             message: "Deposit successful",
             newBalance: account.balance,
@@ -399,6 +403,14 @@ async function transferController(req, res) {
             }).catch(() => {});
         }
 
+        // Invalidate Sender's accounts, balance, and transaction cache in Redis
+        await cacheService.invalidateUserFinancials(userId, fromAccountId);
+
+        // Invalidate Recipient's accounts, balance, and transaction cache if internal bank user
+        if (internalReceiver) {
+            await cacheService.invalidateUserFinancials(internalReceiver.user, internalReceiver._id);
+        }
+
         res.status(200).json({
             message: "Transfer completed successfully",
             newBalance: senderAccount.balance,
@@ -495,9 +507,21 @@ async function getAccountTransactionsController(req, res) {
             return res.status(404).json({ message: "Account not found or access denied." });
         }
 
+        const cacheKey = `cache:account:${accountId}:transactions`;
+
+        // 1. Cache-Aside: Check Redis cache first
+        const cachedTransactions = await cacheService.get(cacheKey);
+        if (cachedTransactions) {
+            return res.status(200).json(cachedTransactions);
+        }
+
+        // 2. Cache Miss: Query MongoDB
         const transactions = await transactionModel
             .find({ account: accountId })
             .sort({ createdAt: -1 });
+
+        // 3. Cache results in Redis with 2-minute TTL (120 seconds)
+        await cacheService.set(cacheKey, transactions, 120);
 
         res.status(200).json(transactions);
     } catch (err) {
@@ -513,10 +537,21 @@ async function getAccountTransactionsController(req, res) {
 async function getUserTransactionsController(req, res) {
     try {
         const userId = req.user._id;
+        const cacheKey = `cache:user:${userId}:transactions`;
 
+        // 1. Cache-Aside: Check Redis cache first
+        const cachedTransactions = await cacheService.get(cacheKey);
+        if (cachedTransactions) {
+            return res.status(200).json(cachedTransactions);
+        }
+
+        // 2. Cache Miss: Query MongoDB
         const transactions = await transactionModel
             .find({ user: userId })
             .sort({ createdAt: -1 });
+
+        // 3. Cache results in Redis with 2-minute TTL (120 seconds)
+        await cacheService.set(cacheKey, transactions, 120);
 
         res.status(200).json(transactions);
     } catch (err) {
