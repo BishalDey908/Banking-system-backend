@@ -46,6 +46,24 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+export const loginWithGoogle = createAsyncThunk(
+  'auth/loginWithGoogle',
+  async (googleData, { rejectWithValue }) => {
+    try {
+      const data = await authApi.googleAuth(googleData);
+      if (data.token) {
+        localStorage.setItem('aura_bank_token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('aura_bank_user', JSON.stringify(data.user));
+      }
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Google sign-in failed');
+    }
+  }
+);
+
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -118,6 +136,22 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(registerUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Google Login
+      .addCase(loginWithGoogle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

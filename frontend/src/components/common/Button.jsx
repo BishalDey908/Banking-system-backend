@@ -30,29 +30,29 @@ export function Button({
   ...rest
 }) {
   // Base styles: clean geometry, transition, focus ring
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 select-none disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 select-none disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]';
 
   // Size styles
   const sizeStyles = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5 font-medium',
-    md: 'text-sm px-4 py-2.5 gap-2',
-    lg: 'text-base px-5 py-3 gap-2.5 font-semibold',
+    sm: 'text-xs px-3.5 py-1.5 gap-1.5 font-medium',
+    md: 'text-xs sm:text-sm px-4 py-2.5 gap-2',
+    lg: 'text-sm sm:text-base px-5 py-3 gap-2.5 font-semibold',
   };
 
-  // Aesthetic variants: crisp contrast, modern fintech palette
+  // Aesthetic variants: crisp contrast, modern Fincheck palette
   const variantStyles = {
     primary:
-      'bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:active:bg-emerald-700 focus:ring-slate-900 dark:focus:ring-emerald-500 border border-slate-900 dark:border-emerald-600 shadow-sm',
+      'bg-[#3b82f6] hover:bg-blue-600 active:bg-blue-700 text-white focus:ring-blue-500 border border-transparent shadow-xs',
     secondary:
-      'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-650 border border-slate-200 dark:border-slate-700 focus:ring-slate-400 dark:focus:ring-slate-600 shadow-sm',
+      'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-transparent focus:ring-slate-400 dark:focus:ring-slate-600 shadow-xs',
     outline:
-      'bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:ring-slate-300 dark:focus:ring-slate-700',
+      'bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-slate-300 dark:focus:ring-slate-700',
     ghost:
-      'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800 border border-transparent focus:ring-slate-200 dark:focus:ring-slate-700',
+      'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent focus:ring-slate-200 dark:focus:ring-slate-700',
     danger:
-      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus:ring-rose-500 border border-rose-600 shadow-sm',
+      'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 focus:ring-rose-500 border border-rose-600 shadow-xs',
     subtle:
-      'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200/70 dark:border-emerald-800/50 focus:ring-emerald-400',
+      'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30 focus:ring-blue-400',
   };
 
   return (

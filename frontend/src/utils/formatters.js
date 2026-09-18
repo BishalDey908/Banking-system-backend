@@ -33,6 +33,30 @@ export function formatCurrency(amount, currency = 'INR') {
 }
 
 /**
+ * Format a monetary amount compactly (e.g. ₹12.5k, ₹1.2L, ₹3.5M)
+ * @param {number|string} amount
+ * @param {string} currency
+ * @returns {string}
+ */
+export function formatCompactCurrency(amount, currency = 'INR') {
+  const num = Number(amount);
+  const safeNum = isNaN(num) || !isFinite(num) ? 0 : num;
+  const curr = (currency || 'INR').toUpperCase();
+  const symbol = curr === 'INR' ? '₹' : curr === 'USD' ? '$' : '€';
+
+  if (Math.abs(safeNum) >= 1_000_000) {
+    return `${symbol}${(safeNum / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (Math.abs(safeNum) >= 100_000 && curr === 'INR') {
+    return `${symbol}${(safeNum / 100_000).toFixed(1).replace(/\.0$/, '')}L`;
+  }
+  if (Math.abs(safeNum) >= 1_000) {
+    return `${symbol}${(safeNum / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  }
+  return `${symbol}${safeNum.toFixed(0)}`;
+}
+
+/**
  * Format date string into human-readable banking timestamp
  * @param {string|Date} date - ISO Date string or Date object
  * @returns {string} Formatted date (e.g. "Sep 15, 2026, 04:30 PM")

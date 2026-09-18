@@ -19,7 +19,15 @@ router.post("/register",authcontroller.userRegisterController)
  * * - @desc Login a user
  * * - @access Public
 */
-router.post("/login",authcontroller.userLoginController)
+router.post("/login", authcontroller.userLoginController)
+
+/* Google Sign-In Route */
+/**     
+ * * - @route POST /api/auth/google
+ * * - @desc Sign in or register directly with Google
+ * * - @access Public
+*/
+router.post("/google", authcontroller.googleAuthController)
 
 /*Current User Profile Route*/
 /**     

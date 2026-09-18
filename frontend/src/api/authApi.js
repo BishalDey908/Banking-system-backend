@@ -25,6 +25,16 @@ export const authApi = {
   },
 
   /**
+   * Authenticate with Google
+   * @param {Object} data - { credential, email, name }
+   * @returns {Promise<{ user: Object, token: string, isNewUser?: boolean }>}
+   */
+  async googleAuth(data) {
+    const response = await apiClient.post('/auth/google', data);
+    return response.data;
+  },
+
+  /**
    * Fetch authenticated user's profile
    * @returns {Promise<{ user: Object }>}
    */

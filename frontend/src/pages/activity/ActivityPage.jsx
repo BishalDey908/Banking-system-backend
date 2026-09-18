@@ -4,6 +4,7 @@ import { History, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { TransactionTable } from '../../components/banking/TransactionTable';
 import { StatCard } from '../../components/common/StatCard';
 import { fetchTransactions } from '../../store/slices/transactionSlice';
+import { fetchAccounts } from '../../store/slices/accountSlice';
 import { formatCurrency } from '../../utils/formatters';
 
 /**
@@ -11,11 +12,17 @@ import { formatCurrency } from '../../utils/formatters';
  */
 export function ActivityPage() {
   const dispatch = useDispatch();
+  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
   const { items: transactions, loading } = useSelector((state) => state.transactions);
 
   useEffect(() => {
+    dispatch(fetchAccounts());
     dispatch(fetchTransactions());
   }, [dispatch]);
+
+  const activeAccount =
+    accounts.find((a) => a._id === activeAccountId) || accounts[0] || null;
+  const currency = activeAccount?.currency || 'INR';
 
   const { totalInflow, totalOutflow } = useMemo(() => {
     let inflow = 0;
@@ -38,48 +45,47 @@ export function ActivityPage() {
       {/* Page Title */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-          Activity
+          Transactions & Statement
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Review all your money movements and export CSV statements.
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
+          variant="cyan"
           label="Total Received"
-          value={formatCurrency(totalInflow, 'INR')}
-          changeType="positive"
-          icon={<ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-          subtitle="All incoming funds"
+          value={formatCurrency(totalInflow, currency)}
+          icon={<ArrowDownLeft className="w-4 h-4 text-white" />}
+          change="+ 36% ↗ than last month"
           loading={loading}
         />
 
         <StatCard
+          variant="pink"
           label="Total Spent"
-          value={formatCurrency(totalOutflow, 'INR')}
+          value={formatCurrency(totalOutflow, currency)}
+          icon={<ArrowUpRight className="w-4 h-4 text-white" />}
+          change="- 11% ↘ than last month"
           changeType="negative"
-          icon={<ArrowUpRight className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
-          subtitle="All outgoing transfers"
           loading={loading}
         />
 
         <StatCard
+          variant="purple"
           label="Transactions"
           value={transactions.length}
-          suffix="Total"
-          icon={<History className="w-4 h-4 text-slate-700 dark:text-slate-300" />}
-          subtitle="Lifetime records"
+          suffix="Records"
+          icon={<History className="w-4 h-4 text-white" />}
+          change="+ 15% ↗ this month"
           loading={loading}
         />
       </div>
 
       {/* Transaction Table */}
       <div className="space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono block">
-          All Transactions
-        </span>
         <TransactionTable transactions={transactions} showFilters={true} loading={loading} />
       </div>
     </div>

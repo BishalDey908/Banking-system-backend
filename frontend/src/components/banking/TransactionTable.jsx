@@ -4,32 +4,32 @@ import {
   ArrowUpRight,
   Search,
   Download,
-  Filter,
   Receipt,
   ShoppingBag,
   Coffee,
   Zap,
   Briefcase,
+  Layers,
+  ChevronRight,
+  ExternalLink,
+  Copy,
+  Check,
+  CheckCircle2,
 } from 'lucide-react';
 import { Card } from '../common/Card';
-import { Badge } from '../common/Badge';
+import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
-import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
 import { TransactionRowSkeleton } from '../common/Skeleton';
-import { formatCurrency, formatDateShort } from '../../utils/formatters';
+import { formatCurrency, formatDateShort, formatDate } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 import { cn } from '../../utils/cn';
 
 /**
- * Reusable Minimalist Financial Transaction Ledger Table
+ * Modern Fincheck Transaction Ledger Table
  * 
- * @param {Object} props
- * @param {Array<Object>} props.transactions - List of transaction items
- * @param {boolean} [props.showFilters=true] - Display search and filter toolbars
- * @param {number} [props.limit] - Cap the rendered row count
- * @param {boolean} [props.loading=false] - Display skeleton rows during fetch
- * @param {string} [props.className='']
+ * Clean, minimalist table layout with Receiver, Type, Date, and Amount
+ * matching the Fincheck reference aesthetic.
  */
 export function TransactionTable({
   transactions = [],
@@ -40,31 +40,55 @@ export function TransactionTable({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // 'ALL' | 'CREDIT' | 'DEBIT'
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   const { showSuccess } = useToast();
 
-  const getCategoryIcon = (category = '') => {
-    switch (category.toLowerCase()) {
-      case 'income':
-      case 'salary':
-        return <Briefcase className="w-3.5 h-3.5 text-emerald-600" />;
-      case 'dining':
-      case 'food':
-        return <Coffee className="w-3.5 h-3.5 text-amber-600" />;
-      case 'bills':
-      case 'utilities':
-        return <Zap className="w-3.5 h-3.5 text-blue-600" />;
-      case 'software':
-      case 'shopping':
-        return <ShoppingBag className="w-3.5 h-3.5 text-indigo-600" />;
-      default:
-        return <Receipt className="w-3.5 h-3.5 text-slate-500" />;
+  const handleCopyRef = (ref) => {
+    if (!ref) return;
+    navigator.clipboard.writeText(ref);
+    setCopiedRef(true);
+    showSuccess('Audit reference copied to clipboard');
+    setTimeout(() => setCopiedRef(false), 2000);
+  };
+
+  const getCategoryIcon = (category = '', isCredit = false) => {
+    const cat = category.toLowerCase();
+    if (cat.includes('food') || cat.includes('coffee') || cat.includes('dining')) {
+      return {
+        icon: <Coffee className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+        bg: 'bg-amber-50 dark:bg-amber-950/40',
+      };
     }
+    if (cat.includes('shop') || cat.includes('market') || cat.includes('store')) {
+      return {
+        icon: <ShoppingBag className="w-4 h-4 text-purple-600 dark:text-purple-400" />,
+        bg: 'bg-purple-50 dark:bg-purple-950/40',
+      };
+    }
+    if (cat.includes('bill') || cat.includes('util') || cat.includes('electric')) {
+      return {
+        icon: <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
+        bg: 'bg-blue-50 dark:bg-blue-950/40',
+      };
+    }
+    if (cat.includes('salary') || cat.includes('deposit') || isCredit) {
+      return {
+        icon: <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+        bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+      };
+    }
+    return {
+      icon: <ArrowUpRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />,
+      bg: 'bg-slate-100 dark:bg-slate-800',
+    };
   };
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
       const matchesSearch =
         tx.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.recipientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tx.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tx.category?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -82,17 +106,16 @@ export function TransactionTable({
   const handleExportCSV = () => {
     if (displayedList.length === 0) return;
 
-    const headers = ['Transaction ID', 'Title', 'Type', 'Category', 'Amount', 'Balance After', 'Currency', 'Date', 'Status', 'Reference'];
+    const headers = ['Transaction ID', 'Recipient / Title', 'Type', 'Category', 'Amount', 'Currency', 'Balance After', 'Date', 'Reference'];
     const rows = displayedList.map((tx) => [
       tx._id || tx.id,
-      `"${tx.title || 'Transaction'}"`,
+      `"${tx.recipientName || tx.title || 'Transaction'}"`,
       tx.type,
-      tx.category || 'General',
+      tx.category || 'Transfer',
       `${tx.type === 'DEBIT' ? '-' : '+'}${(Math.abs(Number(tx.amount)) || 0).toFixed(2)}`,
-      tx.balanceAfter !== undefined && tx.balanceAfter !== null ? Number(tx.balanceAfter).toFixed(2) : '',
       tx.currency || 'INR',
+      tx.balanceAfter !== undefined ? Number(tx.balanceAfter).toFixed(2) : '',
       tx.createdAt || tx.date || '',
-      tx.status || 'COMPLETED',
       tx.reference || '',
     ]);
 
@@ -110,31 +133,34 @@ export function TransactionTable({
   };
 
   return (
-    <Card padding="none" className={cn('overflow-hidden', className)}>
+    <Card padding="none" className={cn('rounded-2xl overflow-hidden border-slate-100 dark:border-slate-800 shadow-sm', className)}>
       {/* Filter / Search Bar */}
       {showFilters && (
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900">
-          <div className="w-full sm:w-72">
-            <Input
-              placeholder="Search by name, category..."
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900">
+          <div className="w-full sm:w-72 relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by recipient, category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search className="w-4 h-4" />}
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 text-xs">
+            {/* Filter tabs */}
+            <div className="flex bg-slate-50 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs">
               {['ALL', 'CREDIT', 'DEBIT'].map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setTypeFilter(type)}
                   className={cn(
-                    'px-2.5 py-1 rounded-md font-medium transition-colors select-none',
+                    'px-3 py-1 rounded-lg font-medium transition-all select-none',
                     typeFilter === type
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   )}
                 >
                   {type === 'ALL' ? 'All' : type === 'CREDIT' ? 'Money In' : 'Money Out'}
@@ -142,139 +168,102 @@ export function TransactionTable({
               ))}
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Download className="w-3.5 h-3.5" />}
+            {/* CSV Export Button */}
+            <button
+              type="button"
               onClick={handleExportCSV}
               disabled={displayedList.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-40 transition-colors select-none"
             >
-              CSV
-            </Button>
+              <Download className="w-3.5 h-3.5" />
+              <span>CSV</span>
+            </button>
           </div>
         </div>
       )}
 
       {/* Table Content */}
       {loading ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-850/60 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3 px-4 sm:px-6 font-semibold">Transaction</th>
-                <th className="py-3 px-4 font-semibold hidden md:table-cell">Category</th>
-                <th className="py-3 px-4 font-semibold hidden sm:table-cell">Date</th>
-                <th className="py-3 px-4 font-semibold hidden lg:table-cell">Reference</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 sm:px-6 font-semibold text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-              {[1, 2, 3, 4, 5].slice(0, limit || 5).map((n) => (
-                <TransactionRowSkeleton key={n} />
-              ))}
-            </tbody>
-          </table>
+        <div className="p-6 space-y-3">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="h-12 bg-slate-50 dark:bg-slate-800 animate-pulse rounded-xl" />
+          ))}
         </div>
       ) : displayedList.length === 0 ? (
-        <div className="p-8">
-          <EmptyState
-            title="No Transactions"
-            description="No transaction records match your search."
-          />
+          <div className="p-10 text-center">
+            <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
+            <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm">No Transactions Found</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No transaction records match your filters.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-850/60 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3 px-4 sm:px-6 font-semibold">Transaction</th>
-                <th className="py-3 px-4 font-semibold hidden md:table-cell">Category</th>
-                <th className="py-3 px-4 font-semibold hidden sm:table-cell">Date</th>
-                <th className="py-3 px-4 font-semibold hidden lg:table-cell">Reference</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 sm:px-6 font-semibold text-right">Amount</th>
+                  <tr className="border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-850/40 text-[11px] font-normal text-slate-400 dark:text-slate-500">
+                    <th className="py-3 px-5 font-normal">Receiver / Title</th>
+                    <th className="py-3 px-4 font-normal">Type</th>
+                    <th className="py-3 px-4 font-normal">Date</th>
+                    <th className="py-3 px-5 font-normal text-right">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60 text-xs">
               {displayedList.map((tx) => {
                 const isCredit = tx.type === 'CREDIT';
+                const { icon, bg } = getCategoryIcon(tx.category || '', isCredit);
+                const title = tx.recipientName || tx.title || (isCredit ? 'Deposit' : 'Wire Transfer');
 
                 return (
                   <tr
                     key={tx._id || tx.id}
-                    className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors group"
+                    onClick={() => setSelectedTx(selectedTx?._id === tx._id ? null : tx)}
+                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                   >
-                    {/* Title + Direction Icon */}
-                    <td className="py-3.5 px-4 sm:px-6">
+                    {/* Receiver + Icon */}
+                    <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-                            isCredit
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                          )}
-                        >
-                          {isCredit ? (
-                            <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <ArrowUpRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                          )}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${bg}`}>
+                          {icon}
                         </div>
-                        <div>
-                          <span className="font-medium text-slate-900 dark:text-slate-100 block leading-tight">
-                            {tx.title}
+                        <div className="min-w-0">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 block truncate max-w-[200px] sm:max-w-[280px]">
+                            {title}
                           </span>
-                          <span className="text-xs text-slate-400 dark:text-slate-500 sm:hidden block mt-0.5">
-                            {formatDateShort(tx.createdAt || tx.date)}
+                          <span className="text-[11px] text-slate-400 block truncate max-w-[200px] sm:max-w-[280px]">
+                            {tx.note || (isCredit ? 'Account Deposit' : 'Wire Transfer')}
                           </span>
                         </div>
                       </div>
                     </td>
 
-                    {/* Category */}
-                    <td className="py-3.5 px-4 hidden md:table-cell">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                        {getCategoryIcon(tx.category)}
-                        <span>{tx.category || 'General'}</span>
-                      </div>
+                    {/* Type / Category */}
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {tx.category || (isCredit ? 'Income' : 'Transfer')}
+                      </span>
                     </td>
 
                     {/* Date */}
-                    <td className="py-3.5 px-4 hidden sm:table-cell text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500">
                       {formatDateShort(tx.createdAt || tx.date)}
                     </td>
 
-                    {/* Reference */}
-                    <td className="py-3.5 px-4 hidden lg:table-cell text-xs font-mono text-slate-400 dark:text-slate-500">
-                      {tx.reference || '—'}
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-3.5 px-4">
-                      <Badge
-                        variant={tx.status === 'COMPLETED' ? 'emerald' : 'slate'}
-                        size="sm"
-                      >
-                        {tx.status || 'Settled'}
-                      </Badge>
-                    </td>
-
-                    {/* Amount & Running Ledger Balance Snapshot */}
-                    <td className="py-3.5 px-4 sm:px-6 text-right font-mono font-medium tabular-nums">
-                      <span
-                        className={cn(
-                          isCredit ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-900 dark:text-slate-100'
-                        )}
-                      >
-                        {isCredit ? '+' : '-'}{formatCurrency(Math.abs(Number(tx.amount) || 0), tx.currency || 'INR')}
-                      </span>
-                      {tx.balanceAfter !== undefined && tx.balanceAfter !== null && (
-                        <span className="block text-[11px] text-slate-400 dark:text-slate-500 font-mono font-normal mt-0.5">
-                          Bal: {formatCurrency(tx.balanceAfter, tx.currency || 'INR')}
+                    {/* Amount */}
+                    <td className="py-3 px-5 text-right">
+                      <div>
+                        <span
+                          className={`font-bold tabular-nums text-sm ${isCredit
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-slate-900 dark:text-slate-100'
+                            }`}
+                        >
+                          {isCredit ? '+' : '-'}{formatCurrency(tx.amount, tx.currency || 'INR')}
                         </span>
-                      )}
+                        {tx.balanceAfter !== undefined && tx.balanceAfter !== null && (
+                          <span className="text-[10px] text-slate-400 block tabular-nums">
+                            Bal: {formatCurrency(tx.balanceAfter, tx.currency || 'INR')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -283,9 +272,114 @@ export function TransactionTable({
           </table>
         </div>
       )}
+
+      {/* Transaction Details Modal */}
+      {selectedTx && (
+        <Modal
+          isOpen={Boolean(selectedTx)}
+          onClose={() => setSelectedTx(null)}
+          title="Transaction Receipt"
+          description="Verified record from immutable banking ledger"
+          size="md"
+        >
+          <div className="space-y-4 pt-1">
+            {/* Amount Banner */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/60 text-center space-y-1">
+              <span className="text-xs text-slate-400 font-medium">Transaction Amount</span>
+              <div
+                className={`text-2xl font-bold tabular-nums ${selectedTx.type === 'CREDIT'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-900 dark:text-slate-100'
+                  }`}
+              >
+                {selectedTx.type === 'CREDIT' ? '+' : '-'}{formatCurrency(selectedTx.amount, selectedTx.currency || 'INR')}
+              </div>
+              <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Completed & Settled</span>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="space-y-2.5 text-xs divide-y divide-slate-100 dark:divide-slate-800/80">
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-slate-400">Recipient / Party</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                  {selectedTx.recipientName || selectedTx.title || 'Bank Transfer'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5">
+                <span className="text-slate-400">Category</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {selectedTx.category || 'General'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5">
+                <span className="text-slate-400">Transaction Date</span>
+                <span className="text-slate-700 dark:text-slate-300">
+                  {formatDate(selectedTx.createdAt || selectedTx.date)}
+                </span>
+              </div>
+
+              {selectedTx.balanceAfter !== undefined && selectedTx.balanceAfter !== null && (
+                <div className="flex items-center justify-between pt-2.5">
+                  <span className="text-slate-400">Balance After Event</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {formatCurrency(selectedTx.balanceAfter, selectedTx.currency || 'INR')}
+                  </span>
+                </div>
+              )}
+
+              {selectedTx.note && (
+                <div className="flex items-center justify-between pt-2.5">
+                  <span className="text-slate-400">Note</span>
+                  <span className="text-slate-700 dark:text-slate-300 italic">
+                    "{selectedTx.note}"
+                  </span>
+                </div>
+              )}
+
+              {selectedTx.reference && (
+                <div className="flex items-center justify-between pt-2.5">
+                  <span className="text-slate-400">Audit Reference</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                      {selectedTx.reference}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyRef(selectedTx.reference)}
+                      className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      title="Copy Reference"
+                    >
+                      {copiedRef ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Close Button */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedTx(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+              >
+                Close Receipt
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Card>
   );
 }
 
 export default TransactionTable;
-

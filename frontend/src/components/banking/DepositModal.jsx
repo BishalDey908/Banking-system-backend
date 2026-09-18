@@ -117,10 +117,10 @@ export function DepositModal() {
 
         {accountsLoading ? (
           <div className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono block">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
               Deposit into Account
             </span>
-            <Skeleton variant="rectangular" className="w-full h-10 rounded-lg" />
+            <Skeleton variant="rectangular" className="w-full h-10 rounded-xl" />
           </div>
         ) : accountOptions.length > 0 ? (
           <Select
@@ -130,7 +130,7 @@ export function DepositModal() {
             onChange={(e) => setSelectedAccountId(e.target.value)}
           />
         ) : (
-          <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
             Please open an account first before making a deposit.
           </div>
         )}
@@ -144,28 +144,27 @@ export function DepositModal() {
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            leftIcon={<span className="text-xs font-mono font-bold">₹</span>}
             required
           />
 
           {/* Quick add chips */}
-          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">Quick Add:</span>
+          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+            <span className="text-[11px] text-slate-400 mr-1">Quick add:</span>
             {quickAmounts.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => handleAddAmount(q)}
-                className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 text-xs font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 transition-colors"
+                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200/80 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors select-none"
               >
-                +₹{q.toLocaleString('en-IN')}
+                +₹{q >= 1000 ? `${q / 1000}k` : q}
               </button>
             ))}
             {amount && Number(amount) > 0 && (
               <button
                 type="button"
                 onClick={() => setAmount('')}
-                className="px-2 py-1 rounded-md text-xs font-mono text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors ml-auto"
+                className="px-2 py-1 text-xs text-rose-500 hover:text-rose-600 hover:underline transition-colors ml-auto select-none"
               >
                 Clear
               </button>
@@ -175,7 +174,7 @@ export function DepositModal() {
 
         <Input
           label="Deposit Note (Optional)"
-          placeholder="e.g. Salary, cash deposit, freelance"
+          placeholder="e.g. Salary, savings, freelance payout"
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />

@@ -7,6 +7,7 @@ import { AccountsPage } from './pages/accounts/AccountsPage';
 import { TransfersPage } from './pages/transfers/TransfersPage';
 import { ActivityPage } from './pages/activity/ActivityPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { StatisticsPage } from './pages/statistics/StatisticsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
@@ -29,6 +30,7 @@ export function App() {
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/transfers" element={<TransfersPage />} />
             <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/statistics" element={<StatisticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>

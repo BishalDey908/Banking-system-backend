@@ -57,7 +57,7 @@ export function MyUpiQrCard({
     accounts.find((a) => a._id === selectedAccId) || accounts[0] || null;
 
   const upiId = currentAccount ? getAccountUpiId(currentAccount, user) : getUserDefaultUpiId(user);
-  const userName = user?.name || 'Aura Bank Member';
+  const userName = user?.name || 'Fincheck Member';
 
   // Generate QR code whenever account, user, or requested amount changes
   useEffect(() => {
@@ -109,7 +109,7 @@ export function MyUpiQrCard({
     const link = document.createElement('a');
     link.href = qrDataUrl;
     const cleanId = currentAccount?._id ? currentAccount._id.slice(-6) : 'account';
-    link.download = `aura_qr_${cleanId}.png`;
+    link.download = `fincheck_qr_${cleanId}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -127,7 +127,7 @@ export function MyUpiQrCard({
     <Card padding="lg" className={cn('max-w-md mx-auto text-center space-y-5', className)}>
       {/* Header */}
       <div>
-        <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
+        <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1">
           <QrCode className="w-4 h-4" />
           <span>Receiver's QR Code</span>
         </div>
@@ -135,7 +135,7 @@ export function MyUpiQrCard({
           Receive Money Instantly
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Scan with Aura Bank, Google Pay, PhonePe, Paytm, or BHIM
+          Scan with Fincheck, Google Pay, PhonePe, Paytm, or BHIM
         </p>
       </div>
 
@@ -227,8 +227,8 @@ export function MyUpiQrCard({
               className={cn(
                 'px-2 py-0.5 rounded text-[11px] font-mono border transition-colors cursor-pointer',
                 Number(requestAmount) === amt
-                  ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-500'
+                  ? 'bg-[#3b82f6] text-white border-blue-600 font-semibold'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-500'
               )}
             >
               +₹{amt}

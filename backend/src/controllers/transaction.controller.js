@@ -58,8 +58,8 @@ async function resolveRecipientAccount(recipientInput) {
             // Check for user by exact email
             let user = await userModel.findOne({ email: clean.toLowerCase() });
 
-            // If not found and domain is @aurabank / @aura / @upi, search by email prefix or name
-            if (!user && (!domain || /^(aurabank|aura|upi|paytm|okaxis|okhdfcbank)$/i.test(domain.toLowerCase()))) {
+            // If not found and domain is @aurabank / @fincheck / @aura / @upi, search by email prefix or name
+            if (!user && (!domain || /^(aurabank|fincheck|aura|upi|paytm|okaxis|okhdfcbank)$/i.test(domain.toLowerCase()))) {
                 const escaped = trimmedPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 // Check if user's email starts with prefix
                 user = await userModel.findOne({
