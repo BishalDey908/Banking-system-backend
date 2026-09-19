@@ -42,6 +42,11 @@ export function Alert({
     },
   };
 
+  const displayMessage =
+    typeof message === 'object' && message !== null
+      ? (message.message || message.error || JSON.stringify(message))
+      : message;
+
   return (
     <div
       role="alert"
@@ -55,7 +60,7 @@ export function Alert({
 
       <div className="flex-1 min-w-0">
         {title && <h4 className="font-semibold text-slate-900 mb-0.5">{title}</h4>}
-        <div className="text-slate-700 leading-relaxed">{message}</div>
+        <div className="text-slate-700 leading-relaxed">{displayMessage}</div>
         {action && <div className="mt-2.5">{action}</div>}
       </div>
 

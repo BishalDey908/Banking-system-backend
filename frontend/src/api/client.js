@@ -76,13 +76,22 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // If backend returns a structured message, use it
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message ||
-      'An unexpected network error occurred';
-      
+    // Extract a clean string error message (handles backend strings and Vercel serverless error objects)
+    const data = error.response?.data;
+    let message = 'An unexpected network error occurred';
+
+    if (typeof data?.message === 'string') {
+      message = data.message;
+    } else if (typeof data?.error === 'string') {
+      message = data.error;
+    } else if (typeof data?.error?.message === 'string') {
+      message = data.error.message;
+    } else if (typeof data?.details === 'string') {
+      message = data.details;
+    } else if (typeof error.message === 'string') {
+      message = error.message;
+    }
+
     // Handle unauthorized session expiration
     if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
       localStorage.removeItem('aura_bank_token');

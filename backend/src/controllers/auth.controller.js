@@ -7,80 +7,105 @@ const emailService = require("../services/email.service");
 const cacheService = require("../services/cache.service");
 
 async function userRegisterController(req, res) {
-    const { email, password, name } = req.body;
+    try {
+        const { email, password, name } = req.body;
 
-    const isExists = await userModel.findOne({
-        email: email
-    })
+        if (!email || !password || !name) {
+            return res.status(400).json({
+                message: "Name, email, and password are required"
+            });
+        }
 
-    if (isExists) {
-        return res.status(422).json({
-            message: "User already registered",
-            status: "failed"
-        })
+        const isExists = await userModel.findOne({ email });
+
+        if (isExists) {
+            return res.status(422).json({
+                message: "User already registered",
+                status: "failed"
+            });
+        }
+
+        const user = await userModel.create({ email, password, name });
+
+        const token = jwt.sign(
+            { userID: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
+
+        res.cookie("token", token);
+
+        res.status(201).json({
+            user: {
+                _id: user._id,
+                email: user.email,
+                name: user.name
+            },
+            token
+        });
+
+        // Send registration email asynchronously without blocking response
+        try {
+            await emailService.sendRegistrationEmail(user.email, user.name);
+        } catch (emailErr) {
+            console.error("Failed to send welcome email:", emailErr.message);
+        }
+    } catch (err) {
+        console.error("Registration error:", err);
+        return res.status(500).json({
+            message: err.message || "An error occurred during registration."
+        });
     }
-
-    const user = await userModel.create({
-        email, password, name
-    })
-
-    const token = jwt.sign({
-        userID: user._id
-    }, process.env.JWT_SECRET, {
-        expiresIn: "3d"
-    })
-
-    res.cookie("token", token)
-
-    res.status(201).json({
-        user: {
-            _id: user._id,
-            email: user.email,
-            name: user.name
-        },
-        token
-    })
-
-
-    await emailService.sendRegistrationEmail(user.email,user.name);
 }
 
 async function userLoginController(req, res) {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Email and password are required"
+            });
+        }
 
-    const user = await userModel.findOne({ email }).select("+password")
+        const user = await userModel.findOne({ email }).select("+password");
 
-    if (!user) {
-        return res.status(401).json({
-            message: "Email or password is invalid"
-        })
+        if (!user) {
+            return res.status(401).json({
+                message: "Email or password is invalid"
+            });
+        }
+
+        const isPasswordCorrect = await user.comparePassword(password);
+
+        if (!isPasswordCorrect) {
+            return res.status(401).json({
+                message: "Email or password is invalid"
+            });
+        }
+
+        const token = jwt.sign(
+            { userID: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
+
+        res.cookie("token", token);
+
+        return res.status(200).json({
+            user: {
+                _id: user._id,
+                email: user.email,
+                name: user.name
+            },
+            token
+        });
+    } catch (err) {
+        console.error("Login controller error:", err);
+        return res.status(500).json({
+            message: err.message || "An unexpected error occurred during login. Please try again."
+        });
     }
-
-    const isPasswordCorrect  = await user.comparePassword(password)
-
-    if (!isPasswordCorrect ) {
-        return res.status(401).json({
-            message: "Email or password is invalid"
-        })
-    }
-
-    const token = jwt.sign({
-        userID: user._id
-    }, process.env.JWT_SECRET, {
-        expiresIn: "3d"
-    })
-
-    res.cookie("token", token)
-
-    res.status(200).json({
-        user: {
-            _id: user._id,
-            email: user.email,
-            name: user.name
-        },
-        token
-    })
 }
 
 async function userMeController(req, res) {
