@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -55,10 +56,12 @@ export function Button({
       'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30 focus:ring-blue-400',
   };
 
+  const isRateLimited = useSelector((state) => state.ui?.rateLimit?.isRateLimited);
+
   return (
     <button
       type={type}
-      disabled={disabled || isLoading}
+      disabled={disabled || isLoading || isRateLimited}
       className={cn(
         baseStyles,
         sizeStyles[size],

@@ -24,6 +24,12 @@ const uiSlice = createSlice({
     receiveQrAccountId: null,
     isSidebarCollapsed: false,
     toasts: [],
+    rateLimit: {
+      isRateLimited: false,
+      message: '',
+      retryAfterSeconds: 0,
+      resetTime: null,
+    },
   },
   reducers: {
     toggleDarkMode: (state) => {
@@ -70,6 +76,24 @@ const uiSlice = createSlice({
     removeToast: (state, action) => {
       state.toasts = state.toasts.filter((toast) => toast.id !== action.payload);
     },
+    setRateLimited: (state, action) => {
+      const { message, retryAfterSeconds } = action.payload || {};
+      const duration = retryAfterSeconds && retryAfterSeconds > 0 ? Number(retryAfterSeconds) : 60;
+      state.rateLimit = {
+        isRateLimited: true,
+        message: message || 'You have exceeded the rate limit. Please wait before trying again.',
+        retryAfterSeconds: duration,
+        resetTime: Date.now() + duration * 1000,
+      };
+    },
+    clearRateLimit: (state) => {
+      state.rateLimit = {
+        isRateLimited: false,
+        message: '',
+        retryAfterSeconds: 0,
+        resetTime: null,
+      };
+    },
   },
 });
 
@@ -86,6 +110,8 @@ export const {
   setSidebarCollapsed,
   addToast,
   removeToast,
+  setRateLimited,
+  clearRateLimit,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

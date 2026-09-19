@@ -58,3 +58,25 @@
     rgba(255, 255, 255, 0.08) 100%
   );
 }
+
+/* ==========================================================================
+   Global Rate Limit Lockout (When 429 is reached)
+   Disables all interactive elements across every component
+   ========================================================================== */
+[data-rate-limited="true"] button:not(.rate-limit-exempt),
+[data-rate-limited="true"] input:not(.rate-limit-exempt),
+[data-rate-limited="true"] select:not(.rate-limit-exempt),
+[data-rate-limited="true"] textarea:not(.rate-limit-exempt),
+[data-rate-limited="true"] [role="button"]:not(.rate-limit-exempt),
+[data-rate-limited="true"] a[href]:not(.rate-limit-exempt) {
+  pointer-events: none !important;
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  user-select: none !important;
+  filter: grayscale(15%) !important;
+  transition: opacity 0.2s ease, filter 0.2s ease !important;
+}
+
+[data-rate-limited="true"] {
+  cursor: not-allowed !important;
+}

@@ -11,6 +11,7 @@ import { StatisticsPage } from './pages/statistics/StatisticsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
+import { RateLimitBanner } from './components/common/RateLimitBanner';
 
 /**
  * Root Application Router
@@ -18,6 +19,9 @@ import { AppLayout } from './components/layout/AppLayout';
 export function App() {
   return (
     <BrowserRouter>
+      {/* Global Rate Limit Lockout & Notification */}
+      <RateLimitBanner />
+
       <Routes>
         {/* Public Authentication Routes */}
         <Route path="/login" element={<LoginPage />} />

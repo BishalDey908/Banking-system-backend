@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -33,6 +34,7 @@ export function Select({
   id,
   ...rest
 }) {
+  const isRateLimited = useSelector((state) => state.ui?.rateLimit?.isRateLimited);
   const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   return (
@@ -60,7 +62,7 @@ export function Select({
           id={selectId}
           value={value}
           onChange={onChange}
-          disabled={disabled}
+          disabled={disabled || isRateLimited}
           required={required}
           className={cn(
             'w-full appearance-none bg-white dark:bg-slate-800 text-xs sm:text-sm rounded-xl border px-3.5 py-2.5 transition-all duration-150',

@@ -54,6 +54,13 @@ app.use(express.json());
 // Parse cookies attached to incoming client requests
 app.use(cookieParser());
 
+// Trust first proxy for accurate client IP detection in rate limiting
+app.set('trust proxy', 1);
+
+// Apply global rate limiting to all /api endpoints
+const { apiLimiter } = require("./middleware/rateLimit.middleware");
+app.use("/api", apiLimiter);
+
 // Mount feature routers under /api namespace
 app.use("/api/auth", authRouter);               // Login, Register, Logout, Current User
 app.use("/api/accounts", accountRouter);       // Create & View Bank Accounts

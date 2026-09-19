@@ -1,6 +1,7 @@
 const express = require("express")
 const authcontroller = require("../controllers/auth.controller")
 const authMiddleware = require("../middleware/auth.middleware")
+const { authLimiter } = require("../middleware/rateLimit.middleware")
 
 const router = express.Router()
 
@@ -11,7 +12,7 @@ const router = express.Router()
  * * - @desc Register a new user
  * * - @access Public
 */
-router.post("/register",authcontroller.userRegisterController)
+router.post("/register", authLimiter, authcontroller.userRegisterController)
 
 /*Login Route*/
 /**     
@@ -19,7 +20,7 @@ router.post("/register",authcontroller.userRegisterController)
  * * - @desc Login a user
  * * - @access Public
 */
-router.post("/login", authcontroller.userLoginController)
+router.post("/login", authLimiter, authcontroller.userLoginController)
 
 /* Google Sign-In Route */
 /**     
@@ -27,7 +28,7 @@ router.post("/login", authcontroller.userLoginController)
  * * - @desc Sign in or register directly with Google
  * * - @access Public
 */
-router.post("/google", authcontroller.googleAuthController)
+router.post("/google", authLimiter, authcontroller.googleAuthController)
 
 /*Current User Profile Route*/
 /**     

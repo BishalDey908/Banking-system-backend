@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { PlusCircle, ArrowUpRight, ArrowDownLeft, Download, QrCode } from 'lucide-react';
 import { Card } from '../common/Card';
 import { cn } from '../../utils/cn';
@@ -15,6 +16,7 @@ export function QuickActions({
   onExportStatement,
   className = '',
 }) {
+  const isRateLimited = useSelector((state) => state.ui?.rateLimit?.isRateLimited);
   const actions = [
     {
       label: 'Scan & Pay',
@@ -57,13 +59,16 @@ export function QuickActions({
         <Card
           key={index}
           padding="sm"
-          hoverable
-          onClick={action.onClick}
+          hoverable={!isRateLimited}
+          onClick={isRateLimited ? undefined : action.onClick}
           className={cn(
-            'flex flex-col justify-center items-start text-left border cursor-pointer group',
-            action.highlight
+            'flex flex-col justify-center items-start text-left border group transition-all',
+            isRateLimited
+              ? 'opacity-50 cursor-not-allowed pointer-events-none border-slate-200 dark:border-slate-800'
+              : 'cursor-pointer',
+            !isRateLimited && action.highlight
               ? 'border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/30 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/30 hover:border-emerald-300 dark:hover:border-emerald-700'
-              : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+              : !isRateLimited && 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
           )}
         >
           <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-xs flex items-center justify-center mb-2.5 transition-transform group-hover:scale-105">

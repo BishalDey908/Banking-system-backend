@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -37,6 +38,7 @@ export function Input({
   const isPassword = type === 'password';
   const effectiveType = isPassword ? (showPassword ? 'text' : 'password') : type;
   const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const isRateLimited = useSelector((state) => state.ui?.rateLimit?.isRateLimited);
 
   const variantStyles = {
     default:
@@ -69,7 +71,7 @@ export function Input({
         <input
           id={inputId}
           type={effectiveType}
-          disabled={disabled}
+          disabled={disabled || isRateLimited}
           required={required}
           className={cn(
             'w-full text-xs sm:text-sm rounded-xl border px-3.5 py-2.5 transition-all duration-150',
