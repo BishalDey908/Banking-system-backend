@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Landmark } from 'lucide-react';
 import { Modal } from '../common/Modal';
-import { Button } from '../common/Button';
+import { Button } from '@/components/ui/button';
 import { Select } from '../common/Select';
 import { Alert } from '../common/Alert';
 import { createAccount } from '../../store/slices/accountSlice';
@@ -10,7 +10,7 @@ import { setCreateAccountModalOpen } from '../../store/slices/uiSlice';
 import { useToast } from '../../hooks/useToast';
 
 /**
- * Clean & Simple Modal for opening a new bank account
+ * Clean & Simple Modal for opening a new bank account powered by shadcn/ui
  */
 export function CreateAccountModal() {
   const dispatch = useDispatch();
@@ -49,12 +49,11 @@ export function CreateAccountModal() {
       size="md"
       footerContent={
         <>
-          <Button variant="outline" size="md" onClick={handleClose} disabled={createLoading}>
+          <Button variant="outline" size="default" onClick={handleClose} disabled={createLoading}>
             Cancel
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            size="default"
             isLoading={createLoading}
             onClick={handleCreate}
             leftIcon={<Landmark className="w-4 h-4" />}

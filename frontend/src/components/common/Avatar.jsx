@@ -1,15 +1,13 @@
 import React from 'react';
-import { cn } from '../../utils/cn';
+import {
+  Avatar as ShadcnAvatar,
+  AvatarImage,
+  AvatarFallback,
+} from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 /**
- * Reusable Minimalist Avatar Component
- * 
- * @param {Object} props
- * @param {string} [props.name=''] - Full name used to compute initials
- * @param {string} [props.src] - Image avatar source URL
- * @param {'sm' | 'md' | 'lg' | 'xl'} [props.size='md'] - Avatar dimension
- * @param {'online' | 'offline'} [props.status] - Status dot
- * @param {string} [props.className='']
+ * Common Avatar Component powered by shadcn/ui Avatar
  */
 export function Avatar({
   name = '',
@@ -43,33 +41,18 @@ export function Avatar({
 
   return (
     <div className="relative inline-flex shrink-0">
-      {src ? (
-        <img
-          src={src}
-          alt={name || 'User Avatar'}
-          className={cn(
-            'rounded-full object-cover border border-slate-200 shadow-sm',
-            sizeStyles[size],
-            className
-          )}
-        />
-      ) : (
-        <div
-          className={cn(
-            'rounded-full bg-slate-900 text-white font-mono flex items-center justify-center font-medium border border-slate-800 select-none shadow-sm',
-            sizeStyles[size],
-            className
-          )}
-        >
+      <ShadcnAvatar className={cn(sizeStyles[size], className)}>
+        {src && <AvatarImage src={src} alt={name || 'User Avatar'} />}
+        <AvatarFallback className="bg-primary/10 text-primary font-mono font-semibold">
           {getInitials(name)}
-        </div>
-      )}
+        </AvatarFallback>
+      </ShadcnAvatar>
 
       {status && (
         <span
           className={cn(
-            'absolute rounded-full border-2 border-white ring-1 ring-black/5',
-            status === 'online' ? 'bg-emerald-500' : 'bg-slate-400',
+            'absolute rounded-full border-2 border-background ring-1 ring-border',
+            status === 'online' ? 'bg-emerald-500' : 'bg-muted-foreground',
             statusDotSizes[size]
           )}
         />
@@ -79,4 +62,3 @@ export function Avatar({
 }
 
 export default Avatar;
-

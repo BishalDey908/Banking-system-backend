@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowDownLeft } from 'lucide-react';
 import { Modal } from '../common/Modal';
-import { Button } from '../common/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Alert } from '../common/Alert';
-import { Skeleton } from '../common/Skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { depositFunds } from '../../store/slices/transactionSlice';
 import { setDepositModalOpen } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
 
 /**
- * Clean & Simple Deposit Funds Modal
+ * Clean & Simple Deposit Funds Modal powered by shadcn/ui
  */
 export function DepositModal() {
   const dispatch = useDispatch();
@@ -61,7 +61,6 @@ export function DepositModal() {
       return;
     }
 
-    // Check decimal precision
     const str = String(amount).trim();
     if (str.includes('.')) {
       const decimals = str.split('.')[1];
@@ -97,12 +96,11 @@ export function DepositModal() {
       size="md"
       footerContent={
         <>
-          <Button variant="outline" size="md" onClick={handleClose} disabled={actionLoading}>
+          <Button variant="outline" size="default" onClick={handleClose} disabled={actionLoading}>
             Cancel
           </Button>
           <Button
-            variant="primary"
-            size="md"
+            size="default"
             isLoading={actionLoading}
             onClick={handleSubmit}
             leftIcon={<ArrowDownLeft className="w-4 h-4" />}
@@ -113,14 +111,14 @@ export function DepositModal() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <Alert variant="danger" message={error} dismissible />}
+        {error && <Alert variant="danger" message={error} dismissible onDismiss={() => setError('')} />}
 
         {accountsLoading ? (
           <div className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+            <span className="text-xs font-semibold text-muted-foreground block">
               Deposit into Account
             </span>
-            <Skeleton variant="rectangular" className="w-full h-10 rounded-xl" />
+            <Skeleton className="w-full h-11 rounded-xl" />
           </div>
         ) : accountOptions.length > 0 ? (
           <Select
@@ -130,7 +128,7 @@ export function DepositModal() {
             onChange={(e) => setSelectedAccountId(e.target.value)}
           />
         ) : (
-              <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
+          <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
             Please open an account first before making a deposit.
           </div>
         )}
@@ -149,13 +147,13 @@ export function DepositModal() {
 
           {/* Quick add chips */}
           <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-            <span className="text-[11px] text-slate-400 mr-1">Quick add:</span>
+            <span className="text-[11px] text-muted-foreground mr-1">Quick add:</span>
             {quickAmounts.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => handleAddAmount(q)}
-                className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200/80 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors select-none"
+                className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary border border-border text-xs font-medium text-foreground transition-colors select-none cursor-pointer"
               >
                 +₹{q >= 1000 ? `${q / 1000}k` : q}
               </button>
@@ -164,7 +162,7 @@ export function DepositModal() {
               <button
                 type="button"
                 onClick={() => setAmount('')}
-                className="px-2 py-1 text-xs text-rose-500 hover:text-rose-600 hover:underline transition-colors ml-auto select-none"
+                className="px-2 py-1 text-xs text-destructive hover:underline transition-colors ml-auto select-none cursor-pointer"
               >
                 Clear
               </button>
@@ -184,4 +182,3 @@ export function DepositModal() {
 }
 
 export default DepositModal;
-

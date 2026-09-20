@@ -127,24 +127,24 @@ export function MyUpiQrCard({
     <Card padding="lg" className={cn('max-w-md mx-auto text-center space-y-5', className)}>
       {/* Header */}
       <div>
-        <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1">
+        <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-semibold uppercase tracking-wider text-primary mb-1">
           <QrCode className="w-4 h-4" />
           <span>Receiver's QR Code</span>
         </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+        <h3 className="text-lg font-bold text-txt-heading">
           Receive Money Instantly
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-txt-muted mt-0.5">
           Scan with Fincheck, Google Pay, PhonePe, Paytm, or BHIM
         </p>
       </div>
 
       {/* Account Selector (if user has accounts and enabled) */}
       {showAccountSelector && accountOptions.length > 0 && (
-        <div className="text-left space-y-1.5 bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+        <div className="text-left space-y-1.5 bg-input-filled p-3 rounded-xl border border-input-border">
           <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <Landmark className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-txt-muted flex items-center gap-1">
+              <Landmark className="w-3.5 h-3.5 text-txt-muted" />
               <span>Receiving Account:</span>
             </span>
             {currentAccount && (
@@ -191,9 +191,9 @@ export function MyUpiQrCard({
       </div>
 
       {/* Optional Request Specific Amount Tool */}
-      <div className="text-left bg-slate-50 dark:bg-slate-850 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+      <div className="text-left bg-input-filled p-3 rounded-xl border border-input-border space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+          <label className="text-[11px] font-mono uppercase font-semibold text-txt-main">
             Request Specific Amount (Optional)
           </label>
           {requestAmount && (
@@ -227,8 +227,8 @@ export function MyUpiQrCard({
               className={cn(
                 'px-2 py-0.5 rounded text-[11px] font-mono border transition-colors cursor-pointer',
                 Number(requestAmount) === amt
-                  ? 'bg-[#3b82f6] text-white border-blue-600 font-semibold'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-500'
+                  ? 'bg-primary text-white border-primary font-semibold'
+                  : 'bg-card-elevated border-card-border text-txt-main hover:border-primary'
               )}
             >
               +₹{amt}
@@ -238,14 +238,14 @@ export function MyUpiQrCard({
       </div>
 
       {/* Receiver UPI ID & Account Details Card */}
-      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 space-y-2 text-left text-xs">
+      <div className="p-3 rounded-xl bg-input-filled border border-input-border space-y-2 text-left text-xs">
         {/* UPI ID Row */}
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <span className="text-[10px] uppercase font-mono text-slate-400 dark:text-slate-500 block">
+            <span className="text-[10px] uppercase font-mono text-txt-muted block">
               Receiver UPI ID
             </span>
-            <span className="font-mono font-bold text-slate-900 dark:text-slate-100 truncate block text-xs sm:text-sm">
+            <span className="font-mono font-bold text-txt-main truncate block text-xs sm:text-sm">
               {upiId}
             </span>
           </div>
@@ -253,7 +253,7 @@ export function MyUpiQrCard({
           <button
             type="button"
             onClick={handleCopyUpiId}
-            className="p-2 rounded-lg bg-white dark:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0 cursor-pointer shadow-xs"
+            className="p-2 rounded-lg bg-card-elevated border border-card-border text-txt-main hover:text-primary transition-colors shrink-0 cursor-pointer shadow-xs"
             title="Copy Receiver UPI ID"
           >
             {copiedUpi ? (

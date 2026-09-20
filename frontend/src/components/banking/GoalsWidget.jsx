@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { Plane, Car, Plus, Sparkles, CheckCircle2 } from 'lucide-react';
-import { Card } from '../common/Card';
+import { Plane, Car, Plus, Sparkles } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
 import { Modal } from '../common/Modal';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '../../hooks/useToast';
 
 /**
- * Modern Fincheck My Goals Widget
- * 
- * Renders savings goals with segmented progress bars
- * matching the Fincheck reference layout.
+ * Authentic shadcn/ui Goals Widget
  */
 export function GoalsWidget({ className = '' }) {
   const { showSuccess } = useToast();
@@ -21,19 +25,19 @@ export function GoalsWidget({ className = '' }) {
   const [goals, setGoals] = useState([
     {
       id: 'g-1',
-      title: 'Travel',
+      title: 'Travel Fund',
       current: 1000,
       target: 2000,
       percent: 50,
-      icon: <Plane className="w-4 h-4 text-slate-600 dark:text-slate-300" />,
+      icon: <Plane className="w-4 h-4 text-foreground" />,
     },
     {
       id: 'g-2',
-      title: 'Car',
+      title: 'Car Down Payment',
       current: 8500,
       target: 42500,
       percent: 20,
-      icon: <Car className="w-4 h-4 text-slate-600 dark:text-slate-300" />,
+      icon: <Car className="w-4 h-4 text-foreground" />,
     },
   ]);
 
@@ -48,7 +52,7 @@ export function GoalsWidget({ className = '' }) {
       current: 0,
       target: targetVal,
       percent: 0,
-      icon: <Sparkles className="w-4 h-4 text-blue-500" />,
+      icon: <Sparkles className="w-4 h-4 text-primary" />,
     };
 
     setGoals((prev) => [...prev, newGoal]);
@@ -58,80 +62,63 @@ export function GoalsWidget({ className = '' }) {
     showSuccess(`Savings goal "${newGoal.title}" created!`);
   };
 
-  /**
-   * Renders 10 modern segmented pill dashes
-   * e.g. 50% => 5 filled dashes, 5 unfilled dashes
-   */
-  const renderSegmentedBar = (percent) => {
-    const totalSegments = 10;
-    const filledCount = Math.min(totalSegments, Math.max(0, Math.round((percent / 100) * totalSegments)));
-
-    return (
-      <div className="flex items-center gap-1.5 w-full mt-2 select-none">
-        {Array.from({ length: totalSegments }).map((_, idx) => (
-          <div
-            key={idx}
-            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-              idx < filledCount
-                ? 'bg-blue-600 dark:bg-blue-500'
-                : 'bg-slate-200 dark:bg-slate-700'
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
   return (
     <>
-      <Card padding="md" className={`rounded-2xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm ${className}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100">
-            My Goals
-          </h3>
+      <Card className={className}>
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle className="text-base font-semibold">Savings Goals</CardTitle>
+            <CardDescription className="text-xs">
+              Track your progress toward target milestones.
+            </CardDescription>
+          </div>
 
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1 bg-[#3b82f6] hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-xs select-none"
+            className="gap-1.5 h-8 text-xs"
           >
-            <span>Add Goals</span>
-          </button>
-        </div>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Goal</span>
+          </Button>
+        </CardHeader>
 
-        {/* Goals List */}
-        <div className="space-y-4">
+        <CardContent className="pt-0 space-y-4">
           {goals.map((goal) => (
             <div
               key={goal.id}
-              className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100/80 dark:border-slate-800/60"
+              className="p-3.5 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-100 dark:border-slate-700 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0">
                     {goal.icon}
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                    <span className="text-xs font-semibold text-foreground block">
                       {goal.title}
                     </span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                    <span className="text-[11px] text-muted-foreground">
                       ${goal.current.toLocaleString('en-US', { minimumFractionDigits: 2 })} / ${goal.target.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
 
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                <span className="text-xs font-bold text-foreground tabular-nums">
                   {goal.percent}%
                 </span>
               </div>
 
-              {/* Segmented Progress Bar */}
-              {renderSegmentedBar(goal.percent)}
+              {/* shadcn Progress Bar */}
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary mt-3">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${Math.min(100, goal.percent)}%` }}
+                />
+              </div>
             </div>
           ))}
-        </div>
+        </CardContent>
       </Card>
 
       {/* Add Goal Modal */}
@@ -143,24 +130,30 @@ export function GoalsWidget({ className = '' }) {
         size="sm"
       >
         <form onSubmit={handleAddGoal} className="space-y-4 pt-2">
-          <Input
-            label="Goal Name"
-            placeholder="e.g. New Laptop, Emergency Fund"
-            value={newGoalTitle}
-            onChange={(e) => setNewGoalTitle(e.target.value)}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="goal-name">Goal Name</Label>
+            <Input
+              id="goal-name"
+              placeholder="e.g. New Laptop, Emergency Fund"
+              value={newGoalTitle}
+              onChange={(e) => setNewGoalTitle(e.target.value)}
+              required
+            />
+          </div>
 
-          <Input
-            label="Target Amount ($)"
-            type="number"
-            min="1"
-            step="any"
-            placeholder="5000"
-            value={newGoalTarget}
-            onChange={(e) => setNewGoalTarget(e.target.value)}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="goal-target">Target Amount ($)</Label>
+            <Input
+              id="goal-target"
+              type="number"
+              min="1"
+              step="any"
+              placeholder="5000"
+              value={newGoalTarget}
+              onChange={(e) => setNewGoalTarget(e.target.value)}
+              required
+            />
+          </div>
 
           <div className="flex justify-end gap-2 pt-3">
             <Button
@@ -173,11 +166,11 @@ export function GoalsWidget({ className = '' }) {
             </Button>
             <Button
               type="submit"
-              variant="primary"
               size="sm"
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
+              className="gap-1.5"
             >
-              Save Goal
+              <Plus className="w-3.5 h-3.5" />
+              <span>Save Goal</span>
             </Button>
           </div>
         </form>
@@ -187,4 +180,3 @@ export function GoalsWidget({ className = '' }) {
 }
 
 export default GoalsWidget;
-

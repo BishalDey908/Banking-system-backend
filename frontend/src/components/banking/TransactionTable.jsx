@@ -8,28 +8,20 @@ import {
   ShoppingBag,
   Coffee,
   Zap,
-  Briefcase,
-  Layers,
-  ChevronRight,
-  ExternalLink,
   Copy,
   Check,
   CheckCircle2,
 } from 'lucide-react';
-import { Card } from '../common/Card';
+import { Card } from '@/components/ui/card';
 import { Modal } from '../common/Modal';
-import { Input } from '../common/Input';
-import { EmptyState } from '../common/EmptyState';
-import { TransactionRowSkeleton } from '../common/Skeleton';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDateShort, formatDate } from '../../utils/formatters';
 import { useToast } from '../../hooks/useToast';
-import { cn } from '../../utils/cn';
+import { cn } from '@/lib/utils';
 
 /**
- * Modern Fincheck Transaction Ledger Table
- * 
- * Clean, minimalist table layout with Receiver, Type, Date, and Amount
- * matching the Fincheck reference aesthetic.
+ * Modern Fincheck Transaction Ledger Table powered by shadcn/ui
  */
 export function TransactionTable({
   transactions = [],
@@ -57,30 +49,30 @@ export function TransactionTable({
     if (cat.includes('food') || cat.includes('coffee') || cat.includes('dining')) {
       return {
         icon: <Coffee className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
-        bg: 'bg-amber-50 dark:bg-amber-950/40',
+        bg: 'bg-amber-500/15',
       };
     }
     if (cat.includes('shop') || cat.includes('market') || cat.includes('store')) {
       return {
         icon: <ShoppingBag className="w-4 h-4 text-purple-600 dark:text-purple-400" />,
-        bg: 'bg-purple-50 dark:bg-purple-950/40',
+        bg: 'bg-purple-500/15',
       };
     }
     if (cat.includes('bill') || cat.includes('util') || cat.includes('electric')) {
       return {
         icon: <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />,
-        bg: 'bg-blue-50 dark:bg-blue-950/40',
+        bg: 'bg-blue-500/15',
       };
     }
     if (cat.includes('salary') || cat.includes('deposit') || isCredit) {
       return {
         icon: <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
-        bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+        bg: 'bg-emerald-500/15',
       };
     }
     return {
-      icon: <ArrowUpRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />,
-      bg: 'bg-slate-100 dark:bg-slate-800',
+      icon: <ArrowUpRight className="w-4 h-4 text-muted-foreground" />,
+      bg: 'bg-muted',
     };
   };
 
@@ -133,34 +125,34 @@ export function TransactionTable({
   };
 
   return (
-    <Card padding="none" className={cn('rounded-2xl overflow-hidden border-slate-100 dark:border-slate-800 shadow-sm', className)}>
+    <Card className={cn('overflow-hidden p-0', className)}>
       {/* Filter / Search Bar */}
       {showFilters && (
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900">
+        <div className="p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-card">
           <div className="w-full sm:w-72 relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by recipient, category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full pl-8 pr-3 py-2 bg-muted/40 border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-sans"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             {/* Filter tabs */}
-            <div className="flex bg-slate-50 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs">
+            <div className="flex bg-muted p-1 rounded-xl text-xs">
               {['ALL', 'CREDIT', 'DEBIT'].map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setTypeFilter(type)}
                   className={cn(
-                    'px-3 py-1 rounded-lg font-medium transition-all select-none',
+                    'px-3 py-1 rounded-lg font-medium transition-all select-none cursor-pointer',
                     typeFilter === type
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-background text-foreground shadow-xs font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {type === 'ALL' ? 'All' : type === 'CREDIT' ? 'Money In' : 'Money Out'}
@@ -169,15 +161,17 @@ export function TransactionTable({
             </div>
 
             {/* CSV Export Button */}
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleExportCSV}
               disabled={displayedList.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 disabled:opacity-40 transition-colors select-none"
+              className="rounded-xl gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               <span>CSV</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -186,27 +180,27 @@ export function TransactionTable({
       {loading ? (
         <div className="p-6 space-y-3">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="h-12 bg-slate-50 dark:bg-slate-800 animate-pulse rounded-xl" />
+            <div key={n} className="h-12 bg-muted/60 animate-pulse rounded-xl" />
           ))}
         </div>
       ) : displayedList.length === 0 ? (
-          <div className="p-10 text-center">
-            <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
-            <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm">No Transactions Found</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No transaction records match your filters.</p>
+        <div className="p-10 text-center">
+          <Receipt className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted-foreground" />
+          <p className="font-semibold text-foreground text-sm">No Transactions Found</p>
+          <p className="text-xs text-muted-foreground mt-1">No transaction records match your filters.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-850/40 text-[11px] font-normal text-slate-400 dark:text-slate-500">
-                    <th className="py-3 px-5 font-normal">Receiver / Title</th>
-                    <th className="py-3 px-4 font-normal">Type</th>
-                    <th className="py-3 px-4 font-normal">Date</th>
-                    <th className="py-3 px-5 font-normal text-right">Amount</th>
+              <tr className="border-b border-border bg-muted/30 text-[11px] font-normal text-muted-foreground">
+                <th className="py-3 px-5 font-normal">Receiver / Title</th>
+                <th className="py-3 px-4 font-normal">Type</th>
+                <th className="py-3 px-4 font-normal">Date</th>
+                <th className="py-3 px-5 font-normal text-right">Amount</th>
               </tr>
             </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-border text-xs">
               {displayedList.map((tx) => {
                 const isCredit = tx.type === 'CREDIT';
                 const { icon, bg } = getCategoryIcon(tx.category || '', isCredit);
@@ -216,7 +210,7 @@ export function TransactionTable({
                   <tr
                     key={tx._id || tx.id}
                     onClick={() => setSelectedTx(selectedTx?._id === tx._id ? null : tx)}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                    className="hover:bg-muted/40 transition-colors cursor-pointer group"
                   >
                     {/* Receiver + Icon */}
                     <td className="py-3 px-5">
@@ -225,10 +219,10 @@ export function TransactionTable({
                           {icon}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-semibold text-slate-800 dark:text-slate-100 block truncate max-w-[200px] sm:max-w-[280px]">
+                          <span className="font-semibold text-foreground block truncate max-w-[200px] sm:max-w-[280px]">
                             {title}
                           </span>
-                          <span className="text-[11px] text-slate-400 block truncate max-w-[200px] sm:max-w-[280px]">
+                          <span className="text-[11px] text-muted-foreground block truncate max-w-[200px] sm:max-w-[280px]">
                             {tx.note || (isCredit ? 'Account Deposit' : 'Wire Transfer')}
                           </span>
                         </div>
@@ -236,14 +230,14 @@ export function TransactionTable({
                     </td>
 
                     {/* Type / Category */}
-                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    <td className="py-3 px-4 text-muted-foreground">
+                      <Badge variant="secondary" className="font-mono text-[10px] px-2 py-0.5">
                         {tx.category || (isCredit ? 'Income' : 'Transfer')}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Date */}
-                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500">
+                    <td className="py-3 px-4 text-muted-foreground">
                       {formatDateShort(tx.createdAt || tx.date)}
                     </td>
 
@@ -251,15 +245,16 @@ export function TransactionTable({
                     <td className="py-3 px-5 text-right">
                       <div>
                         <span
-                          className={`font-bold tabular-nums text-sm ${isCredit
+                          className={`font-bold tabular-nums text-sm ${
+                            isCredit
                               ? 'text-emerald-600 dark:text-emerald-400'
-                              : 'text-slate-900 dark:text-slate-100'
-                            }`}
+                              : 'text-foreground'
+                          }`}
                         >
                           {isCredit ? '+' : '-'}{formatCurrency(tx.amount, tx.currency || 'INR')}
                         </span>
                         {tx.balanceAfter !== undefined && tx.balanceAfter !== null && (
-                          <span className="text-[10px] text-slate-400 block tabular-nums">
+                          <span className="text-[10px] text-muted-foreground block tabular-nums">
                             Bal: {formatCurrency(tx.balanceAfter, tx.currency || 'INR')}
                           </span>
                         )}
@@ -284,49 +279,50 @@ export function TransactionTable({
         >
           <div className="space-y-4 pt-1">
             {/* Amount Banner */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/60 text-center space-y-1">
-              <span className="text-xs text-slate-400 font-medium">Transaction Amount</span>
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border text-center space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Transaction Amount</span>
               <div
-                className={`text-2xl font-bold tabular-nums ${selectedTx.type === 'CREDIT'
+                className={`text-2xl font-bold tabular-nums ${
+                  selectedTx.type === 'CREDIT'
                     ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-slate-900 dark:text-slate-100'
-                  }`}
+                    : 'text-foreground'
+                }`}
               >
                 {selectedTx.type === 'CREDIT' ? '+' : '-'}{formatCurrency(selectedTx.amount, selectedTx.currency || 'INR')}
               </div>
-              <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full">
+              <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
                 <CheckCircle2 className="w-3 h-3" />
                 <span>Completed & Settled</span>
               </div>
             </div>
 
             {/* Details Grid */}
-            <div className="space-y-2.5 text-xs divide-y divide-slate-100 dark:divide-slate-800/80">
+            <div className="space-y-2.5 text-xs divide-y divide-border">
               <div className="flex items-center justify-between pt-1">
-                <span className="text-slate-400">Recipient / Party</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                <span className="text-muted-foreground">Recipient / Party</span>
+                <span className="font-semibold text-foreground">
                   {selectedTx.recipientName || selectedTx.title || 'Bank Transfer'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between pt-2.5">
-                <span className="text-slate-400">Category</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">
+                <span className="text-muted-foreground">Category</span>
+                <span className="font-medium text-foreground">
                   {selectedTx.category || 'General'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between pt-2.5">
-                <span className="text-slate-400">Transaction Date</span>
-                <span className="text-slate-700 dark:text-slate-300">
+                <span className="text-muted-foreground">Transaction Date</span>
+                <span className="text-foreground">
                   {formatDate(selectedTx.createdAt || selectedTx.date)}
                 </span>
               </div>
 
               {selectedTx.balanceAfter !== undefined && selectedTx.balanceAfter !== null && (
                 <div className="flex items-center justify-between pt-2.5">
-                  <span className="text-slate-400">Balance After Event</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  <span className="text-muted-foreground">Balance After Event</span>
+                  <span className="font-semibold text-foreground">
                     {formatCurrency(selectedTx.balanceAfter, selectedTx.currency || 'INR')}
                   </span>
                 </div>
@@ -334,8 +330,8 @@ export function TransactionTable({
 
               {selectedTx.note && (
                 <div className="flex items-center justify-between pt-2.5">
-                  <span className="text-slate-400">Note</span>
-                  <span className="text-slate-700 dark:text-slate-300 italic">
+                  <span className="text-muted-foreground">Note</span>
+                  <span className="text-foreground italic">
                     "{selectedTx.note}"
                   </span>
                 </div>
@@ -343,15 +339,15 @@ export function TransactionTable({
 
               {selectedTx.reference && (
                 <div className="flex items-center justify-between pt-2.5">
-                  <span className="text-slate-400">Audit Reference</span>
+                  <span className="text-muted-foreground">Audit Reference</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                    <span className="font-mono text-[11px] text-muted-foreground">
                       {selectedTx.reference}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopyRef(selectedTx.reference)}
-                      className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
                       title="Copy Reference"
                     >
                       {copiedRef ? (
@@ -367,13 +363,14 @@ export function TransactionTable({
 
             {/* Modal Close Button */}
             <div className="pt-2 flex justify-end">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setSelectedTx(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
               >
                 Close Receipt
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

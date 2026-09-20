@@ -58,14 +58,14 @@ export function AccountList({
   if (!loading && accounts.length === 0) {
     return (
       <EmptyState
-        icon={<Landmark className="w-8 h-8 text-blue-500" />}
+        icon={<Landmark className="w-8 h-8 text-primary" />}
         title="No Accounts Opened"
         description="Open your first bank account to deposit money, receive transfers, and track your ledger."
         action={
           <button
             type="button"
             onClick={onCreateClick}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
           >
             <Plus className="w-4 h-4" />
             <span>Open Account</span>
@@ -87,10 +87,10 @@ export function AccountList({
             onClick={() => onSelectAccount && onSelectAccount(acc._id)}
             className={cn(
               'p-5 rounded-2xl cursor-pointer transition-all duration-200 select-none relative overflow-hidden',
-              'bg-white dark:bg-slate-900 border',
+              'bg-card border',
               isSelected
-                ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-md shadow-blue-500/5'
-                : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm'
+                ? 'border-primary ring-2 ring-primary/20 shadow-md shadow-primary/5'
+                : 'border-card-border hover:border-card-hover-border shadow-sm'
             )}
           >
             {/* Top row: Icon, Account Number, Status Badge */}
@@ -100,21 +100,21 @@ export function AccountList({
                   className={cn(
                     'w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0',
                     isSelected
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                      ? 'bg-primary text-white'
+                      : 'bg-primary-subtle text-primary'
                   )}
                 >
                   <Landmark className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <span className="text-xs font-bold text-txt-heading">
                       {maskAccountNumber(acc._id)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleCopyId(e, acc._id)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      className="text-txt-muted hover:text-txt-main p-0.5 cursor-pointer"
                       title="Copy Account ID"
                     >
                       {copiedId === acc._id ? (
@@ -130,20 +130,20 @@ export function AccountList({
                         dispatch(setReceiveQrAccountId(acc._id));
                         dispatch(setReceiveQrModalOpen(true));
                       }}
-                      className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-0.5 transition-colors cursor-pointer"
+                      className="text-txt-muted hover:text-primary p-0.5 transition-colors cursor-pointer"
                       title="View UPI QR Code"
                     >
                       <QrCode className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-mono mt-0.5">
+                  <div className="flex items-center gap-1 text-[11px] text-primary font-mono mt-0.5">
                     <span className="truncate max-w-[130px] sm:max-w-[170px]">
                       {getAccountUpiId(acc, user)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleCopyUpi(e, getAccountUpiId(acc, user))}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      className="text-txt-muted hover:text-txt-main p-0.5 cursor-pointer"
                       title="Copy UPI ID"
                     >
                       {copiedUpi === getAccountUpiId(acc, user) ? (
@@ -158,7 +158,7 @@ export function AccountList({
 
               {/* Status and Currency Pills */}
               <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-card-elevated text-txt-main">
                   {acc.currency || 'INR'}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
@@ -169,11 +169,11 @@ export function AccountList({
             </div>
 
             {/* Middle row: Available Balance */}
-            <div className="pt-2 border-t border-slate-50 dark:border-slate-800/80">
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
+            <div className="pt-2 border-t border-card-border">
+              <span className="text-[11px] text-txt-muted block">
                 Available Balance
               </span>
-              <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+              <span className="text-lg sm:text-xl font-bold text-txt-main tabular-nums">
                 {formatCurrency(acc.balance ?? 0, acc.currency || 'INR')}
               </span>
             </div>
@@ -181,7 +181,7 @@ export function AccountList({
             {/* Selection indicator pill at bottom right */}
             {isSelected && (
               <div className="mt-3 flex items-center justify-end">
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
                   <Check className="w-3 h-3" />
                   <span>Selected</span>
                 </span>
@@ -194,15 +194,15 @@ export function AccountList({
       {/* Open Another Account Button Card */}
       <div
         onClick={onCreateClick}
-        className="p-5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500/60 bg-slate-50/50 dark:bg-slate-850/40 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 group min-h-[140px]"
+        className="p-5 rounded-2xl border border-dashed border-card-border hover:border-primary bg-card-elevated/40 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 group min-h-[140px]"
       >
-        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:scale-105 transition-all mb-2">
+        <div className="w-9 h-9 rounded-xl bg-card shadow-2xs flex items-center justify-center text-txt-muted group-hover:text-primary group-hover:scale-105 transition-all mb-2">
           <Plus className="w-4 h-4" />
         </div>
-        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <span className="text-xs font-bold text-txt-main group-hover:text-primary transition-colors">
           Open Another Account
         </span>
-        <span className="text-[11px] text-slate-400 mt-0.5">
+        <span className="text-[11px] text-txt-muted mt-0.5">
           Instant & Free
         </span>
       </div>

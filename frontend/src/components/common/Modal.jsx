@@ -1,19 +1,16 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
-import { cn } from '../../utils/cn';
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 /**
- * Reusable Minimalist Modal Dialog Component
- * 
- * @param {Object} props
- * @param {boolean} props.isOpen - Whether modal is visible
- * @param {Function} props.onClose - Callback triggered when closing modal
- * @param {React.ReactNode} [props.title] - Modal title
- * @param {string} [props.description] - Subtitle / description
- * @param {'sm' | 'md' | 'lg' | 'xl'} [props.size='md'] - Max width of the modal
- * @param {boolean} [props.showCloseButton=true] - Display top-right close icon
- * @param {React.ReactNode} [props.footerContent] - Optional bottom action buttons
- * @param {React.ReactNode} props.children - Modal body content
+ * Common Modal Dialog Component powered by shadcn/ui Dialog
  */
 export function Modal({
   isOpen,
@@ -25,31 +22,6 @@ export function Modal({
   footerContent,
   children,
 }) {
-  // Close on Escape key press
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   const sizeStyles = {
     sm: 'max-w-sm',
     md: 'max-w-lg',
@@ -58,57 +30,29 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal Surface */}
-      <div
-        className={cn(
-          'relative w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 z-10 transform transition-all duration-200 animate-in fade-in zoom-in-95',
-          sizeStyles[size]
-        )}
-      >
-        {/* Header */}
-        {(title || showCloseButton) && (
-          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              {title && <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>}
-              {description && (
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{description}</p>
-              )}
-            </div>
-
-            {showCloseButton && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors ml-4"
-                title="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose && onClose()}>
+      <DialogContent className={cn('overflow-hidden p-0 gap-0', sizeStyles[size])}>
+        {(title || description) && (
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border text-left">
+            {title && <DialogTitle className="text-lg font-semibold">{title}</DialogTitle>}
+            {description && (
+              <DialogDescription className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </DialogDescription>
             )}
-          </div>
+          </DialogHeader>
         )}
 
-        {/* Body */}
         <div className="px-6 py-5 max-h-[75vh] overflow-y-auto">{children}</div>
 
-        {/* Footer */}
         {footerContent && (
-          <div className="px-6 py-4 bg-slate-50/80 dark:bg-slate-850/80 border-t border-slate-100 dark:border-slate-800 rounded-b-2xl flex items-center justify-end gap-3">
+          <DialogFooter className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-end gap-3">
             {footerContent}
-          </div>
+          </DialogFooter>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export default Modal;
-

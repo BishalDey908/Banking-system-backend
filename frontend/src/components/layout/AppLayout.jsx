@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { CreateAccountModal } from '../banking/CreateAccountModal';
@@ -10,13 +10,14 @@ import { ReceiveQrModal } from '../banking/ReceiveQrModal';
 import { ToastContainer } from '../common/ToastContainer';
 
 /**
- * Modern Fincheck App Layout Shell
+ * Modern Fincheck App Layout Shell with Page Transitions
  */
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#F4F5FA] dark:bg-[#0C101C] text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row antialiased transition-colors duration-200 selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row antialiased transition-colors duration-200 selection:bg-primary selection:text-primary-foreground">
       {/* Left Navigation Sidebar */}
       <Sidebar
         mobileOpen={mobileOpen}
@@ -27,8 +28,10 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <Header onToggleMobileMenu={() => setMobileOpen(true)} />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-7 max-w-7xl w-full mx-auto">
-          <Outlet />
+        <main className="flex-1 p-4 sm:p-6 lg:p-7 max-w-8xl w-full mx-auto">
+          <div key={location.pathname} className="animate-page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 

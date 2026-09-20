@@ -17,37 +17,15 @@ async function getTransporter() {
     return cachedTransporter;
   }
 
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
-  const clientId = process.env.CLIENT_ID;
-  const clientSecret = process.env.CLIENT_SECRET;
-  const refreshToken = process.env.REFRESH_TOKEN;
-  const smtpHost = process.env.SMTP_HOST;
+  const user = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : '';
+  const pass = (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || '').trim();
+  const clientId = process.env.CLIENT_ID ? process.env.CLIENT_ID.trim() : '';
+  const clientSecret = process.env.CLIENT_SECRET ? process.env.CLIENT_SECRET.trim() : '';
+  const refreshToken = process.env.REFRESH_TOKEN ? process.env.REFRESH_TOKEN.trim() : '';
+  const smtpHost = process.env.SMTP_HOST ? process.env.SMTP_HOST.trim() : '';
   const smtpPort = process.env.SMTP_PORT;
 
-  // 1. Custom SMTP server
-  if (smtpHost && user && pass) {
-    cachedTransporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: Number(smtpPort) || 587,
-      secure: Number(smtpPort) === 465,
-      auth: { user, pass },
-    });
-    console.log('[Email Service] Configured with custom SMTP host:', smtpHost);
-    return cachedTransporter;
-  }
-
-  // 2. Gmail with App Password
-  if (user && pass) {
-    cachedTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-    });
-    console.log('[Email Service] Configured with Gmail SMTP account:', user);
-    return cachedTransporter;
-  }
-
-  // 3. Gmail with OAuth2
+  // 1. Gmail with OAuth2 (Prioritized if OAuth2 credentials provided)
   if (user && clientId && clientSecret && refreshToken) {
     cachedTransporter = nodemailer.createTransport({
       service: 'gmail',
@@ -60,6 +38,28 @@ async function getTransporter() {
       },
     });
     console.log('[Email Service] Configured with Gmail OAuth2 account:', user);
+    return cachedTransporter;
+  }
+
+  // 2. Custom SMTP server
+  if (smtpHost && user && pass) {
+    cachedTransporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(smtpPort) || 587,
+      secure: Number(smtpPort) === 465,
+      auth: { user, pass },
+    });
+    console.log('[Email Service] Configured with custom SMTP host:', smtpHost);
+    return cachedTransporter;
+  }
+
+  // 3. Gmail with App Password
+  if (user && pass) {
+    cachedTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+    });
+    console.log('[Email Service] Configured with Gmail SMTP account:', user);
     return cachedTransporter;
   }
 
@@ -352,8 +352,153 @@ Aura Bank Security Team
   return sendEmail(userEmail, subject, text, html);
 }
 
+/**
+ * Sends a branded OTP email for Registration, Login, 2FA, or Password Reset
+ * @param {Object} options
+ * @param {string} options.to - Recipient email address
+ * @param {string} [options.name='Valued Customer'] - User name
+ * @param {string} options.otp - 6-digit OTP code
+ * @param {'REGISTER'|'LOGIN'|'2FA'|'RESET_PASSWORD'} [options.purpose='LOGIN']
+ */
+async function sendOtpEmail({ to, name = 'Valued Customer', otp, purpose = 'LOGIN' }) {
+  if (!to || !otp) return null;
+
+  let title = 'Verification Code';
+  let subject = `Aura Bank - Verification Code (${otp})`;
+  let badgeText = 'ONE-TIME PASSCODE';
+  let badgeColor = '#635BFF'; // Aura Indigo
+  let description = 'Please use the verification code below to verify your identity with Aura Bank.';
+  let securityNote = 'This code will expire in 10 minutes. Never share this OTP with anyone, including Aura Bank support agents.';
+
+  switch (purpose) {
+    case 'REGISTER':
+      title = 'Verify Your Email';
+      subject = `Aura Bank - Email Verification Code (${otp})`;
+      badgeText = 'ACCOUNT REGISTRATION';
+      badgeColor = '#10B981'; // Emerald
+      description = 'Welcome to Aura Bank! Please verify your email address to complete your registration and activate your banking account.';
+      break;
+
+    case 'LOGIN':
+      title = 'Login Passcode';
+      subject = `Aura Bank - One-Time Login Code (${otp})`;
+      badgeText = 'PASSWORDLESS SIGN-IN';
+      badgeColor = '#3B82F6'; // Blue
+      description = 'We received a request to sign in to your Aura Bank account. Enter the one-time passcode below to proceed.';
+      break;
+
+    case '2FA':
+      title = 'Two-Factor Authentication';
+      subject = `Aura Bank - 2FA Security Code (${otp})`;
+      badgeText = '2FA CHALLENGE';
+      badgeColor = '#8B5CF6'; // Purple
+      description = 'A login attempt was initiated for your account. Please enter this two-factor authentication code to confirm it is you.';
+      break;
+
+    case 'RESET_PASSWORD':
+      title = 'Reset Your Password';
+      subject = `Aura Bank - Password Reset Code (${otp})`;
+      badgeText = 'SECURITY RESET';
+      badgeColor = '#F97316'; // Coral / Orange
+      description = 'We received a request to reset the password for your Aura Bank account. Use the code below to set up a new password.';
+      securityNote = 'If you did not request a password reset, please change your password immediately or contact Aura Bank fraud support.';
+      break;
+  }
+
+  // Format OTP with spaces for visual clarity (e.g. 1 2 3  4 5 6)
+  const formattedOtp = String(otp).split('').join(' ');
+
+  const text = `
+Aura Bank - ${title}
+
+Hello ${name},
+
+${description}
+
+Your Verification Code: ${otp}
+
+${securityNote}
+
+This code is valid for 10 minutes.
+
+© ${new Date().getFullYear()} Aura Bank. All rights reserved.
+  `.trim();
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 24px 16px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+        
+        <!-- Header -->
+        <tr>
+          <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 28px 32px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;">Aura Bank</h1>
+            <p style="color: #94a3b8; font-size: 11px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1.5px; font-family: monospace;">Security & Authentication</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding: 32px 32px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="display: inline-block; background-color: ${badgeColor}15; color: ${badgeColor}; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 12px; border-radius: 9999px; font-family: monospace;">
+                ${badgeText}
+              </span>
+              <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin: 12px 0 6px;">${title}</h2>
+              <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0;">
+                Hello <strong>${name}</strong>, ${description}
+              </p>
+            </div>
+
+            <!-- OTP Highlight Card -->
+            <div style="background-color: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; padding: 24px 16px; text-align: center; margin-bottom: 24px;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 8px;">
+                Your Verification Code
+              </div>
+              <div style="font-family: 'Courier New', Courier, monospace, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0f172a; margin: 0; line-height: 1.2;">
+                ${otp}
+              </div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 10px;">
+                ⏱️ Valid for <strong>10 minutes</strong>
+              </div>
+            </div>
+
+            <!-- Security Advisory -->
+            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px 16px;">
+              <p style="margin: 0; font-size: 12px; color: #92400e; line-height: 1.5;">
+                <strong>Security Notice:</strong> ${securityNote}
+              </p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.5;">
+              This is an automated security transmission from Aura Bank Systems.<br>
+              If you did not initiate this request, please ignore this email or alert our security team.<br>
+              © ${new Date().getFullYear()} Aura Bank India. All rights reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, subject, text, html);
+}
+
 module.exports = {
   sendRegistrationEmail,
   sendTransactionAlertEmail,
+  sendOtpEmail,
   sendEmail,
 };

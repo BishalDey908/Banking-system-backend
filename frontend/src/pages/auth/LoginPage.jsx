@@ -10,35 +10,83 @@ import {
   Wallet,
   Sparkles,
 } from 'lucide-react';
-import { Alert } from '../../components/common/Alert';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { GoogleAuthButton } from '../../components/auth/GoogleAuthButton';
 import { GoogleAccountPickerModal } from '../../components/auth/GoogleAccountPickerModal';
-import { loginUser, loginWithGoogle, clearAuthError } from '../../store/slices/authSlice';
+import { authApi } from '../../api/authApi';
+import {
+  loginUser,
+  loginWithOtp,
+  verify2FA,
+  loginWithGoogle,
+  clearAuthError,
+  clearTwoFactorPending,
+} from '../../store/slices/authSlice';
 import { isValidEmail } from '../../utils/validators';
+import { cn } from '@/lib/utils';
 
 /**
- * Modern Fincheck Banking Login View
- * Ultra-clean split-card design matching Figma reference.
+ * Modern Fincheck Banking Login View powered by shadcn/ui
  */
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading: reduxLoading, error, twoFactorPending } = useSelector((state) => state.auth);
 
+  // Tabs: 'password' | 'otp'
+  const [loginMode, setLoginMode] = useState('password');
+
+  // Password Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Email OTP Login State
+  const [otpSent, setOtpSent] = useState(false);
+  const [loginOtp, setLoginOtp] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // 2FA Challenge State
+  const [twoFactorOtp, setTwoFactorOtp] = useState('');
+
+  // UI State
   const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const from = location.state?.from?.pathname || '/';
 
-  const handleSubmit = async (e) => {
+  // Demo auto-fill
+  const handleDemoFill = () => {
+    setEmail('demo@bank.com');
+    setPassword('demo1234');
+    setFormError('');
+  };
+
+  // Cooldown timer effect
+  React.useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // 1. Password Login Submit
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    dispatch(clearAuthError());
+    setFormSuccess('');
 
     if (!isValidEmail(email)) {
       setFormError('Please enter a valid email address.');
@@ -46,12 +94,87 @@ export function LoginPage() {
     }
 
     if (!password) {
-      setFormError('Please enter your password.');
+      setFormError('Password is required.');
       return;
     }
 
-    const result = await dispatch(loginUser({ email, password }));
+    const result = await dispatch(
+      loginUser({ email: email.trim(), password })
+    );
+
     if (loginUser.fulfilled.match(result)) {
+      if (result.payload?.twoFactorRequired) {
+        setFormSuccess('2FA code sent to your registered email.');
+      } else {
+        navigate(from, { replace: true });
+      }
+    }
+  };
+
+  // 2. Send OTP for Passwordless Login
+  const handleSendLoginOtp = async (e) => {
+    e?.preventDefault();
+    setFormError('');
+    setFormSuccess('');
+
+    if (!isValidEmail(email)) {
+      setFormError('Please enter a valid email address to receive OTP.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await authApi.sendLoginOtp(email.trim());
+      setOtpSent(true);
+      setResendCooldown(60);
+      setFormSuccess(`One-time login passcode sent to ${email.trim()}`);
+    } catch (err) {
+      setFormError(
+        err.response?.data?.message || 'Failed to send login code. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 3. Verify OTP for Passwordless Login
+  const handleVerifyLoginOtp = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormSuccess('');
+
+    if (!loginOtp || loginOtp.trim().length !== 6) {
+      setFormError('Please enter the 6-digit login code.');
+      return;
+    }
+
+    const result = await dispatch(
+      loginWithOtp({ email: email.trim(), otp: loginOtp.trim() })
+    );
+
+    if (loginWithOtp.fulfilled.match(result)) {
+      navigate(from, { replace: true });
+    }
+  };
+
+  // 4. Verify 2FA Challenge Submit
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!twoFactorOtp || twoFactorOtp.trim().length !== 6) {
+      setFormError('Please enter the 6-digit 2FA code.');
+      return;
+    }
+
+    const result = await dispatch(
+      verify2FA({
+        tempToken: twoFactorPending?.tempToken,
+        otp: twoFactorOtp.trim(),
+      })
+    );
+
+    if (verify2FA.fulfilled.match(result)) {
       navigate(from, { replace: true });
     }
   };
@@ -78,22 +201,16 @@ export function LoginPage() {
     }
   };
 
-  const handleDemoFill = () => {
-    setEmail('bishaldeveloperog@gmail.com');
-    setPassword('secret123');
-    setFormError('');
-  };
+  const loading = reduxLoading || isSubmitting;
 
   return (
-    <div className="min-h-screen bg-[#131417] flex items-center justify-center p-3 sm:p-6 md:p-8 font-sans select-none">
-      {/* Outer Split Card Container */}
-      <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[32px] sm:rounded-[36px] shadow-2xl p-3 sm:p-4 border border-white/10 overflow-hidden flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-[620px]">
-
-        {/* Left Side: Vibrant Blue Gradient Showcase Panel */}
-        <div className="w-full lg:w-[48%] rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 md:p-10 flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#2563eb] to-[#38bdf8] text-white shadow-inner">
-          {/* Subtle Ambient Decorative Glows */}
-          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-cyan-300/20 blur-3xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-blue-700/40 blur-3xl pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-background antialiased font-sans">
+      <div className="w-full max-w-[1100px] min-h-[640px] bg-card rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col lg:flex-row animate-scale-up">
+        {/* Left Side: Modern Brand Visual Panel */}
+        <div className="hidden lg:flex lg:w-[48%] relative bg-gradient-to-br from-[var(--gradient-brand-from)] via-[var(--gradient-brand-via)] to-[var(--gradient-brand-to)] p-8 sm:p-10 flex-col justify-between overflow-hidden">
+          <div className="absolute inset-0 bg-radial-gradient from-white/10 via-transparent to-black/20 pointer-events-none" />
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="absolute -left-10 -top-10 w-60 h-60 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
           {/* Top: Logo */}
           <div className="relative z-10 flex items-center gap-2.5">
@@ -152,7 +269,6 @@ export function LoginPage() {
 
           {/* Bottom: 3 Core Step Cards */}
           <div className="relative z-10 grid grid-cols-3 gap-2.5">
-            {/* Step 1: Active Solid White Card */}
             <div className="bg-white text-slate-900 rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col justify-between h-28 transition-transform duration-200">
               <div className="w-6 h-6 rounded-full bg-[#2563eb] text-white text-xs font-semibold flex items-center justify-center">
                 1
@@ -162,7 +278,6 @@ export function LoginPage() {
               </p>
             </div>
 
-            {/* Step 2: Frosted Glass Card */}
             <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 sm:p-4 text-white flex flex-col justify-between h-28">
               <div className="w-6 h-6 rounded-full bg-white/20 text-white text-xs font-medium flex items-center justify-center">
                 2
@@ -172,7 +287,6 @@ export function LoginPage() {
               </p>
             </div>
 
-            {/* Step 3: Frosted Glass Card */}
             <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-3 sm:p-4 text-white flex flex-col justify-between h-28">
               <div className="w-6 h-6 rounded-full bg-white/20 text-white text-xs font-medium flex items-center justify-center">
                 3
@@ -186,104 +300,214 @@ export function LoginPage() {
 
         {/* Right Side: Clean Authentication Form */}
         <div className="w-full lg:w-[52%] px-4 sm:px-8 md:px-12 py-6 sm:py-8 flex flex-col justify-center max-w-[420px] mx-auto">
-          {/* Header Title: Clean "Sign In" without verbose subtitle */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">
+          <div className="text-center mb-5">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight font-heading">
               Sign In
             </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Access your secure Fincheck dashboard
+            </p>
           </div>
+
+          {/* Mode Switcher using shadcn Tabs */}
+          <Tabs
+            value={loginMode}
+            onValueChange={(val) => {
+              setLoginMode(val);
+              setFormError('');
+              setFormSuccess('');
+            }}
+            className="w-full mb-5"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="password">Password</TabsTrigger>
+              <TabsTrigger value="otp">Email OTP</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {(formError || error) && (
             <div className="mb-4">
-              <Alert variant="danger" message={formError || error} />
+              <Alert variant="destructive">
+                <div>{formError || error}</div>
+              </Alert>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email Input */}
-            <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                  className="w-full px-4 py-3 bg-[#f8f9fa] dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-sans"
-                />
-                {isValidEmail(email) && (
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500">
-                    <Check className="w-4 h-4" />
-                  </div>
-                )}
-              </div>
+          {formSuccess && (
+            <div className="mb-4">
+              <Alert variant="success">
+                <div>{formSuccess}</div>
+              </Alert>
             </div>
+          )}
 
-            {/* Password Input */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Password
-                </label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDemoFill}
-                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                  >
-                    Auto-Fill
-                  </button>
-                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 hover:underline cursor-pointer">
-                    Forgot Password?
-                  </span>
+          {loginMode === 'password' ? (
+            /* PASSWORD LOGIN FORM */
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email" className="block mb-1.5">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    required
+                  />
+                  {isValidEmail(email) && (
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none">
+                      <Check className="w-4 h-4" />
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                  className="w-full pl-4 pr-11 py-3 bg-[#f8f9fa] dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-sans"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
 
-            {/* Primary Action Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-[#2563eb] hover:bg-blue-600 active:bg-blue-700 text-white text-sm font-medium transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label htmlFor="password">
+                    Password
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDemoFill}
+                      className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
+                    >
+                      Auto-Fill
+                    </button>
+                    <span className="text-muted-foreground">•</span>
+                    <Link
+                      to="/forgot-password"
+                      className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
+                    >
+                      Forgot Password?
+                    </Link>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                isLoading={loading}
+                className="w-full h-11 text-sm font-medium"
+              >
+                Continue
+              </Button>
+            </form>
+          ) : (
+            /* EMAIL OTP LOGIN FORM */
+            <div>
+              {!otpSent ? (
+                <form onSubmit={handleSendLoginOtp} className="space-y-4">
+                  <div>
+                    <Label htmlFor="otp-email" className="block mb-1.5">
+                      Enter Registered Email
+                    </Label>
+                    <Input
+                      id="otp-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    isLoading={loading}
+                    className="w-full h-11 text-sm font-medium"
+                  >
+                    Send Login Passcode
+                  </Button>
+                </form>
               ) : (
-                <span>Continue</span>
+                <form onSubmit={handleVerifyLoginOtp} className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Enter the 6-digit code sent to <strong className="text-foreground">{email}</strong>
+                    </p>
+                    <Input
+                      type="text"
+                      maxLength={6}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="123456"
+                      value={loginOtp}
+                      onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, ''))}
+                      className="text-center tracking-[10px] font-mono text-xl h-11"
+                      autoFocus
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setLoginOtp('');
+                        setFormError('');
+                        setFormSuccess('');
+                      }}
+                      className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      ← Use another email
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendLoginOtp}
+                      disabled={resendCooldown > 0 || isSubmitting}
+                      className="text-primary font-semibold hover:underline disabled:text-muted-foreground disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                    </button>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    isLoading={loading}
+                    disabled={loginOtp.length !== 6}
+                    className="w-full h-11 text-sm font-medium mt-2"
+                  >
+                    Sign In with Code
+                  </Button>
+                </form>
               )}
-            </button>
-          </form>
+            </div>
+          )}
 
           {/* Sign Up Link */}
-          <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-4">
+          <p className="text-center text-xs text-muted-foreground mt-4">
             Don't have an account?{' '}
             <Link
               to="/register"
-              className="text-[#2563eb] hover:text-blue-700 dark:text-blue-400 font-semibold hover:underline"
+              className="text-primary font-semibold hover:underline"
             >
               Sign up
             </Link>
@@ -292,10 +516,10 @@ export function LoginPage() {
           {/* Or Divider */}
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200/80 dark:border-slate-800" />
+              <Separator />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500 font-medium">
+              <span className="bg-card px-3 text-muted-foreground font-medium">
                 Or
               </span>
             </div>
@@ -308,15 +532,80 @@ export function LoginPage() {
             onError={(msg) => setFormError(msg)}
           />
 
-          {/* Clean Legal Footer */}
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-5 leading-relaxed">
+          {/* Legal Footer */}
+          <p className="text-[11px] text-muted-foreground text-center mt-5 leading-relaxed">
             By signing in you confirm that you have read and agree to the Fincheck{' '}
-            <span className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">Privacy Policy</span>{' '}
+            <span className="text-primary cursor-pointer hover:underline">Privacy Policy</span>{' '}
             and{' '}
-            <span className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">Terms of Service</span>.
+            <span className="text-primary cursor-pointer hover:underline">Terms of Service</span>.
           </p>
         </div>
       </div>
+
+      {/* 2FA Verification Modal */}
+      {twoFactorPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-card rounded-3xl p-6 sm:p-8 shadow-2xl border border-border text-center relative">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 border border-primary/20">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-xl font-bold text-foreground font-heading">
+              Two-Factor Authentication
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              For your security, enter the 6-digit verification code sent to <strong className="text-foreground">{twoFactorPending.email}</strong>
+            </p>
+
+            {formError && (
+              <div className="mt-4">
+                <Alert variant="destructive">
+                  <div>{formError}</div>
+                </Alert>
+              </div>
+            )}
+
+            <form onSubmit={handleVerify2FA} className="mt-5 space-y-4">
+              <Input
+                type="text"
+                maxLength={6}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="123456"
+                value={twoFactorOtp}
+                onChange={(e) => setTwoFactorOtp(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                required
+                className="text-center tracking-[12px] font-mono text-2xl h-12"
+              />
+
+              <div className="flex gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    dispatch(clearTwoFactorPending());
+                    setTwoFactorOtp('');
+                    setFormError('');
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  disabled={twoFactorOtp.length !== 6}
+                  className="flex-1"
+                >
+                  Verify & Continue
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Direct Google Account Chooser Modal */}
       <GoogleAccountPickerModal

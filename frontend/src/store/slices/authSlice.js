@@ -15,6 +15,9 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const data = await authApi.login(credentials);
+      if (data.twoFactorRequired) {
+        return data;
+      }
       if (data.token) {
         localStorage.setItem('aura_bank_token', data.token);
       }
@@ -24,6 +27,54 @@ export const loginUser = createAsyncThunk(
       return data;
     } catch (err) {
       return rejectWithValue(err.message || 'Login failed');
+    }
+  }
+);
+
+export const loginWithOtp = createAsyncThunk(
+  'auth/loginWithOtp',
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const data = await authApi.verifyLoginOtp({ email, otp });
+      if (data.token) {
+        localStorage.setItem('aura_bank_token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('aura_bank_user', JSON.stringify(data.user));
+      }
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'OTP login failed');
+    }
+  }
+);
+
+export const verify2FA = createAsyncThunk(
+  'auth/verify2FA',
+  async ({ tempToken, otp }, { rejectWithValue }) => {
+    try {
+      const data = await authApi.verify2fa({ tempToken, otp });
+      if (data.token) {
+        localStorage.setItem('aura_bank_token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('aura_bank_user', JSON.stringify(data.user));
+      }
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || '2FA verification failed');
+    }
+  }
+);
+
+export const toggle2FA = createAsyncThunk(
+  'auth/toggle2FA',
+  async (enable, { rejectWithValue }) => {
+    try {
+      const data = await authApi.toggle2fa(enable);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to update 2FA');
     }
   }
 );
@@ -97,6 +148,7 @@ const authSlice = createSlice({
     user: storedUser,
     token: storedToken,
     isAuthenticated: Boolean(storedToken),
+    twoFactorPending: null, // { required: boolean, tempToken: string, email: string }
     loading: false,
     error: null,
   },
@@ -104,24 +156,75 @@ const authSlice = createSlice({
     clearAuthError: (state) => {
       state.error = null;
     },
+    clearTwoFactorPending: (state) => {
+      state.twoFactorPending = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Login
+      // Login with password
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
+        if (action.payload.twoFactorRequired) {
+          state.twoFactorPending = action.payload;
+          state.isAuthenticated = false;
+          state.error = null;
+        } else {
+          state.user = action.payload.user;
+          state.token = action.payload.token;
+          state.isAuthenticated = true;
+          state.twoFactorPending = null;
+          state.error = null;
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Login with OTP
+      .addCase(loginWithOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginWithOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.twoFactorPending = null;
+        state.error = null;
+      })
+      .addCase(loginWithOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Verify 2FA
+      .addCase(verify2FA.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verify2FA.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.twoFactorPending = null;
+        state.error = null;
+      })
+      .addCase(verify2FA.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Toggle 2FA
+      .addCase(toggle2FA.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user.isTwoFactorEnabled = action.payload.isTwoFactorEnabled;
+          localStorage.setItem('aura_bank_user', JSON.stringify(state.user));
+        }
       })
       // Register
       .addCase(registerUser.pending, (state) => {
@@ -175,6 +278,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { clearAuthError, clearTwoFactorPending } = authSlice.actions;
 export default authSlice.reducer;
 

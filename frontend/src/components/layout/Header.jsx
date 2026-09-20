@@ -7,196 +7,188 @@ import {
   Bell,
   ChevronDown,
   Plus,
-  ArrowUpRight,
   Sun,
   Moon,
   LogOut,
-  User as UserIcon,
   QrCode,
-  ScanLine,
 } from 'lucide-react';
-import { Avatar } from '../common/Avatar';
-import { Skeleton } from '../common/Skeleton';
+import { Avatar } from '@/components/common/Avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   setCreateAccountModalOpen,
-  setTransferModalOpen,
-  setQrScannerModalOpen,
   setReceiveQrModalOpen,
   toggleDarkMode,
 } from '../../store/slices/uiSlice';
 import { logoutUser } from '../../store/slices/authSlice';
 
 /**
- * Modern Fincheck Header Component
- * 
- * Features:
- * - Left: "Hi [User Name], Welcome back!" greeting
- * - Right: Date pill badge, search input pill, notification bell, and user avatar dropdown
+ * Authentic shadcn/ui Dashboard Top Navbar
+ * Increased height, enhanced spacing, and precise optical alignment.
  */
 export function Header({ onToggleMobileMenu }) {
   const dispatch = useDispatch();
   const { user, loading: authLoading } = useSelector((state) => state.auth);
   const { darkMode } = useSelector((state) => state.ui);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Formatted date matching Fincheck reference (e.g. "Jul 19, 2022" or today's date)
   const currentDateFormatted = new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   }).format(new Date());
 
-  const displayName = user?.name || 'Adaline Horton';
+  const displayName = user?.name || 'Customer';
 
   return (
-    <header className="h-18 px-4 sm:px-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20 flex items-center justify-between transition-colors">
+    <header className="h-20 px-6 sm:px-8 lg:px-10 bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-20 flex items-center justify-between transition-colors shadow-2xs">
       {/* Left: Mobile hamburger + User Greeting */}
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
+      <div className="flex items-center gap-3.5 min-w-0">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onToggleMobileMenu}
-          className="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+          className="lg:hidden h-10 w-10 text-muted-foreground"
+          aria-label="Toggle navigation menu"
         >
           <Menu className="w-5 h-5" />
-        </button>
+        </Button>
 
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 truncate">
-              Hi {displayName},
-            </span>
-          </div>
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
-            Welcome back!
-          </span>
+        <div className="flex flex-col min-w-0 justify-center">
+          <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight tracking-tight truncate">
+            Hi, {displayName}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-tight mt-0.5 hidden sm:block">
+            Welcome back to your financial command center
+          </p>
         </div>
       </div>
 
-      {/* Right: Date Pill + Search Input + Notification Bell + User Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Date Pill Badge (Hidden on small mobile) */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 select-none">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+      {/* Right: Search, Date, Actions & User Profile */}
+      <div className="flex items-center gap-3 sm:gap-4 lg:gap-5">
+        {/* Date Badge */}
+        <div className="hidden xl:flex items-center gap-2 h-10 px-3.5 bg-secondary/60 border border-border/80 rounded-md text-xs font-medium text-muted-foreground select-none shadow-2xs">
+          <Calendar className="w-4 h-4" />
           <span>{currentDateFormatted}</span>
         </div>
 
-        {/* Search Bar Pill (Hidden on mobile) */}
-        <div className="hidden sm:flex items-center relative w-48 lg:w-56">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+        {/* Spacious shadcn Search Input */}
+        <div className="hidden sm:flex items-center relative w-56 lg:w-72">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 pointer-events-none" />
           <input
             type="text"
-            placeholder="Type to search"
+            placeholder="Search accounts, transfers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+            className="h-10 w-full pl-9 pr-12 py-2 bg-background border border-solid border-input rounded-md text-sm text-foreground placeholder:text-muted-foreground hover:border-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring shadow-2xs transition-all duration-200"
           />
+          <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground shadow-2xs">
+            ⌘K
+          </kbd>
         </div>
 
-
         {/* Action: My QR Trigger */}
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="default"
           onClick={() => dispatch(setReceiveQrModalOpen(true))}
-          className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/80 dark:border-slate-700 transition-colors select-none cursor-pointer"
+          className="hidden md:inline-flex h-10 px-3.5 text-xs sm:text-sm gap-2 font-medium hover-lift"
           title="Show My UPI QR Code"
         >
-          <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          <QrCode className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
           <span>My QR</span>
-        </button>
-
-        {/* Action: Scan & Pay QR Trigger */}
-        <button
-          type="button"
-          onClick={() => dispatch(setQrScannerModalOpen(true))}
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl border border-blue-100 dark:border-blue-900/40 transition-colors select-none cursor-pointer"
-          title="Scan UPI QR Code"
-        >
-          <ScanLine className="w-3.5 h-3.5" />
-          <span>Scan & Pay</span>
-        </button>
+        </Button>
 
         {/* Notification Bell */}
-        <button
-          type="button"
-          className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-10 w-10 rounded-md text-muted-foreground hover:text-foreground transition-transform duration-200 active:scale-95"
           title="Notifications"
         >
-          <Bell className="w-4 h-4" />
-          {/* Notification Alert Dot */}
-          <span className="w-2 h-2 rounded-full bg-[#f472b6] absolute top-1.5 right-1.5 ring-2 ring-white dark:ring-slate-900" />
-        </button>
+          <Bell className="w-4 h-4 hover:animate-bounce" />
+          <span className="w-2 h-2 rounded-full bg-destructive absolute top-2.5 right-2.5 ring-2 ring-background animate-pulse" />
+        </Button>
 
         {/* Dark Mode Toggle */}
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => dispatch(toggleDarkMode())}
-          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="h-10 w-10 rounded-md text-muted-foreground hover:text-foreground transition-transform duration-200 active:scale-95"
           title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
           {darkMode ? (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 hover:rotate-45" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-600" />
+            <Moon className="w-4 h-4 text-muted-foreground transition-transform duration-300 hover:-rotate-12" />
           )}
-        </button>
+        </Button>
 
         {/* User Profile & Dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setProfileDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2 p-1 sm:pl-2 sm:pr-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
-          >
-            {authLoading && !user ? (
-              <Skeleton variant="circular" className="w-8 h-8" />
-            ) : (
-              <Avatar name={displayName} size="sm" />
-            )}
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden lg:inline truncate max-w-[120px]">
-              {displayName}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:inline" />
-          </button>
-
-          {/* Profile Dropdown Menu */}
-          {profileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1.5 z-30 animate-in fade-in slide-in-from-top-1 duration-150">
-              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700">
-                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 block truncate">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-3 h-11 px-2 sm:px-3 rounded-md border border-border/60 hover:bg-secondary/70 hover:border-border transition-all select-none"
+            >
+              {authLoading && !user ? (
+                <Skeleton className="w-8 h-8 rounded-full" />
+              ) : (
+                <Avatar name={displayName} size="sm" />
+              )}
+              <div className="hidden lg:flex flex-col text-left">
+                <span className="text-xs font-semibold text-foreground leading-tight truncate max-w-[120px]">
                   {displayName}
                 </span>
-                <span className="text-[11px] text-slate-400 block truncate">
-                  {user?.email || 'adaline@fincheck.io'}
+                <span className="text-[10px] text-muted-foreground leading-tight">
+                  Account Holder
                 </span>
               </div>
+              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden lg:inline" />
+            </Button>
+          </DropdownMenuTrigger>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileDropdownOpen(false);
-                  dispatch(setCreateAccountModalOpen(true));
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60"
-              >
-                <Plus className="w-3.5 h-3.5 text-slate-400" />
-                <span>Open New Account</span>
-              </button>
+          <DropdownMenuContent align="end" className="w-56 mt-1">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {displayName}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {user?.email || 'user@example.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
 
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileDropdownOpen(false);
-                  dispatch(logoutUser());
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log out</span>
-              </button>
-            </div>
-          )}
-        </div>
+            <DropdownMenuItem
+              onClick={() => dispatch(setCreateAccountModalOpen(true))}
+              className="gap-2 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Open New Account</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => dispatch(logoutUser())}
+              className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

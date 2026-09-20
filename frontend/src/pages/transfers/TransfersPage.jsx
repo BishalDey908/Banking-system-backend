@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  ArrowUpRight,
   History,
-  Building2,
-  CheckCircle2,
-  Sparkles,
   ShieldCheck,
   Send,
-  Zap,
-  QrCode,
   Camera,
 } from 'lucide-react';
-import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
-import { Select } from '../../components/common/Select';
-import { Alert } from '../../components/common/Alert';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/common/Select';
+import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/common/Avatar';
 import { sendTransfer, fetchTransactions } from '../../store/slices/transactionSlice';
 import { fetchAccounts } from '../../store/slices/accountSlice';
 import {
@@ -25,17 +21,17 @@ import {
 } from '../../store/slices/uiSlice';
 import { maskAccountNumber, formatCurrency, formatDateShort } from '../../utils/formatters';
 import { validateTransferAmount } from '../../utils/validators';
-import { Avatar } from '../../components/common/Avatar';
 import { useToast } from '../../hooks/useToast';
+import { cn } from '@/lib/utils';
 
 /**
- * Modern Fincheck Send Money View
+ * Modern Fincheck Send Money View powered by shadcn/ui
  */
 export function TransfersPage() {
   const dispatch = useDispatch();
   const { qrScannedData } = useSelector((state) => state.ui);
-  const { accounts, activeAccountId, loading: accountsLoading } = useSelector((state) => state.accounts);
-  const { items: transactions, loading: transactionsLoading } = useSelector((state) => state.transactions);
+  const { accounts, activeAccountId } = useSelector((state) => state.accounts);
+  const { items: transactions } = useSelector((state) => state.transactions);
   const { showSuccess } = useToast();
 
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId || '');
@@ -170,44 +166,40 @@ export function TransfersPage() {
       {/* Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight font-heading">
             Send Money
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Fast, secure peer-to-peer, UPI ID, and wire bank transfers.
           </p>
         </div>
 
-        {/* Scan with Camera Action Button */}
-        <button
-          type="button"
+        <Button
+          variant="subtle"
           onClick={() => dispatch(setQrScannerModalOpen(true))}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/50 border border-blue-200/80 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-xl shadow-xs transition-colors w-fit select-none cursor-pointer"
+          className="gap-2 w-fit"
         >
           <Camera className="w-4 h-4" />
           <span>Scan UPI QR Code</span>
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Transfer Form Card */}
         <div className="lg:col-span-7">
-          <Card padding="lg" className="rounded-2xl border-slate-100 dark:border-slate-800">
+          <Card className="p-6">
             <form onSubmit={handleSend} className="space-y-5">
               {error && (
-                <Alert
-                  variant="danger"
-                  title="Transfer could not be completed"
-                  message={error}
-                  onClose={() => setError('')}
-                />
+                <Alert variant="destructive">
+                  <div>{error}</div>
+                </Alert>
               )}
 
               {/* Source Account Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <Label className="block mb-1.5">
                   Pay From
-                </label>
+                </Label>
                 {accounts.length > 0 ? (
                   <Select
                     options={accountOptions}
@@ -215,14 +207,14 @@ export function TransfersPage() {
                     onChange={(e) => setSelectedAccountId(e.target.value)}
                   />
                 ) : (
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-xs text-amber-700 dark:text-amber-300">
-                      No active bank accounts found. Please open an account first.
+                  <div className="p-3 bg-amber-500/10 rounded-xl text-xs text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    No active bank accounts found. Please open an account first.
                   </div>
                 )}
                 {selectedAccount && (
-                  <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mt-1.5 px-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-1.5 px-1">
                     <span>Available Balance:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                    <span className="font-bold text-foreground">
                       {formatCurrency(availableBalance, currency)}
                     </span>
                   </div>
@@ -231,17 +223,25 @@ export function TransfersPage() {
 
               {/* Recipient Details */}
               <div className="space-y-3.5">
-                <Input
-                  label="Recipient Full Name"
-                  placeholder="e.g. John Doe, Alex Smith"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  required
-                />
+                <div>
+                  <Label htmlFor="recip-name" className="block mb-1.5">
+                    Recipient Full Name
+                  </Label>
+                  <Input
+                    id="recip-name"
+                    placeholder="e.g. John Doe, Alex Smith"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    required
+                  />
+                </div>
 
                 <div className="space-y-1.5">
+                  <Label htmlFor="recip-account" className="block mb-1.5">
+                    Recipient Account ID or UPI ID
+                  </Label>
                   <Input
-                    label="Recipient Account ID or UPI ID"
+                    id="recip-account"
                     placeholder="e.g. 68c71f... or alex@okaxis"
                     value={recipientAccount}
                     onChange={(e) => setRecipientAccount(e.target.value)}
@@ -249,14 +249,14 @@ export function TransfersPage() {
                   />
 
                   {/* Popular UPI handle chips */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                    <span className="text-[11px] text-slate-400 mr-0.5">Popular handles:</span>
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[11px] text-muted-foreground mr-0.5">Popular handles:</span>
                     {popularHandles.map((handle) => (
                       <button
                         key={handle}
                         type="button"
                         onClick={() => handleSelectUpiHandle(handle)}
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-700 text-[11px] font-mono text-slate-600 dark:text-slate-300 transition-colors select-none"
+                        className="px-2 py-0.5 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary border border-border text-[11px] font-mono text-foreground transition-all duration-200 hover:scale-105 active:scale-95 select-none cursor-pointer"
                       >
                         {handle}
                       </button>
@@ -268,14 +268,14 @@ export function TransfersPage() {
               {/* Amount Input */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Label htmlFor="tx-amount">
                     Amount ({currency})
-                  </label>
+                  </Label>
                   {availableBalance > 0 && (
                     <button
                       type="button"
                       onClick={handleSendAll}
-                      className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-[11px] font-semibold text-primary hover:underline cursor-pointer transition-colors"
                     >
                       Send All ({formatCurrency(availableBalance, currency)})
                     </button>
@@ -283,6 +283,7 @@ export function TransfersPage() {
                 </div>
 
                 <Input
+                  id="tx-amount"
                   type="number"
                   step="any"
                   min="0.01"
@@ -294,13 +295,13 @@ export function TransfersPage() {
 
                 {/* Quick Add Chips */}
                 <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
-                  <span className="text-[11px] text-slate-400 mr-1">Quick add:</span>
+                  <span className="text-[11px] text-muted-foreground mr-1">Quick add:</span>
                   {quickAmounts.map((val) => (
                     <button
                       key={val}
                       type="button"
                       onClick={() => handleAddAmount(val)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200/80 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors select-none"
+                      className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/15 hover:text-primary border border-border text-xs font-medium text-foreground transition-all duration-200 hover:scale-105 active:scale-95 select-none cursor-pointer"
                     >
                       +{val >= 1000 ? `${val / 1000}k` : val}
                     </button>
@@ -309,43 +310,48 @@ export function TransfersPage() {
               </div>
 
               {/* Note / Memo */}
-              <Input
-                label="Transfer Note (Optional)"
-                placeholder="e.g. Rent payment, Dinner split"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
+              <div>
+                <Label htmlFor="tx-note" className="block mb-1.5">
+                  Transfer Note (Optional)
+                </Label>
+                <Input
+                  id="tx-note"
+                  placeholder="e.g. Rent payment, Dinner split"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
 
               {/* Submit Button */}
-              <button
+              <Button
                 type="submit"
-                disabled={isSubmitting || accounts.length === 0}
-                className="w-full flex items-center justify-center gap-2 bg-[#3b82f6] hover:bg-blue-600 disabled:opacity-50 text-white font-semibold text-sm py-3 px-4 rounded-xl transition-all shadow-sm select-none"
+                isLoading={isSubmitting}
+                disabled={accounts.length === 0}
+                className="w-full h-11 text-sm font-medium"
+                leftIcon={<Send className="w-4 h-4" />}
               >
-                <Send className="w-4 h-4" />
-                <span>{isSubmitting ? 'Processing Transfer...' : 'Confirm & Send Money'}</span>
-              </button>
+                Confirm & Send Money
+              </Button>
             </form>
           </Card>
         </div>
 
         {/* Right: Recent Transfers & Security Card */}
         <div className="lg:col-span-5 space-y-5">
-          {/* Recent Wire Transfers */}
-          <Card padding="md" className="rounded-2xl border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
-              <History className="w-4 h-4 text-slate-400" />
+          <Card className="p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 font-heading">
+              <History className="w-4 h-4 text-muted-foreground" />
               <span>Recent Outgoing Transfers</span>
             </h3>
 
             {recentTransfers.length === 0 ? (
-              <div className="py-6 text-center text-slate-400 text-xs">
+              <div className="py-6 text-center text-muted-foreground text-xs">
                 No outgoing transfers yet.
               </div>
             ) : (
-                <div className="space-y-2 divide-y divide-slate-50 dark:divide-slate-800/60">
-                  {recentTransfers.map((tx) => {
-                    const name = tx.recipientName || tx.title || 'Wire Transfer';
+              <div className="space-y-2 divide-y divide-border">
+                {recentTransfers.map((tx) => {
+                  const name = tx.recipientName || tx.title || 'Wire Transfer';
                   return (
                     <div
                       key={tx._id || tx.id}
@@ -353,21 +359,21 @@ export function TransfersPage() {
                         if (tx.recipientName) setRecipientName(tx.recipientName);
                         if (tx.recipientAccount) setRecipientAccount(tx.recipientAccount);
                       }}
-                      className="pt-2 flex items-center justify-between text-xs hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1.5 -mx-1.5 rounded-xl cursor-pointer transition-colors group"
+                      className="pt-2 flex items-center justify-between text-xs hover:bg-muted/50 p-1.5 -mx-1.5 rounded-xl cursor-pointer transition-colors group"
                       title="Click to send money to this recipient again"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Avatar name={name} size="sm" />
                         <div className="min-w-0">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate max-w-[150px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <span className="font-semibold text-foreground block truncate max-w-[150px] group-hover:text-primary transition-colors">
                             {name}
                           </span>
-                          <span className="text-[11px] text-slate-400 block">
+                          <span className="text-[11px] text-muted-foreground block">
                             {formatDateShort(tx.createdAt || tx.date)}
                           </span>
                         </div>
                       </div>
-                      <span className="font-bold text-slate-900 dark:text-slate-100 tabular-nums shrink-0">
+                      <span className="font-bold text-foreground tabular-nums shrink-0">
                         -{formatCurrency(tx.amount, tx.currency || currency)}
                       </span>
                     </div>
@@ -378,15 +384,15 @@ export function TransfersPage() {
           </Card>
 
           {/* Security Notice */}
-          <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <Card className="p-4 bg-muted/40 text-xs flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-semibold block">Automatic Protection Guarantee</span>
-              <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 leading-relaxed">
+              <span className="font-semibold block text-foreground">Automatic Protection Guarantee</span>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
                 If a transfer fails due to network or gateway errors, funds are automatically refunded back to your account balance with zero money lost.
               </p>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
