@@ -31,7 +31,7 @@ export function Sidebar({
   const dispatch = useDispatch();
 
   const navigationItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Accounts', path: '/accounts', icon: <TrendingUp className="w-5 h-5" /> },
     { name: 'Send Money', path: '/transfers', icon: <CreditCard className="w-5 h-5" /> },
     { name: 'Transactions', path: '/activity', icon: <RefreshCw className="w-5 h-5" /> },
@@ -116,7 +116,7 @@ export function Sidebar({
           <NavLink
             key={item.name}
             to={item.path}
-            end={item.path === '/'}
+            end={item.path === '/dashboard'}
             onClick={() => mobileOpen && onCloseMobile && onCloseMobile()}
             title={isCollapsed ? item.name : undefined}
             className={({ isActive }) =>

@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { LandingPage } from './pages/landing/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
@@ -15,24 +17,40 @@ import { AppLayout } from './components/layout/AppLayout';
 import { RateLimitBanner } from './components/common/RateLimitBanner';
 
 /**
- * Root Application Router
+ * Root Application Router with Landing Page & Protected Banking Shell
  */
 export function App() {
+  const { isAuthenticated, token } = useSelector((state) => state.auth);
+  const isAuth = Boolean(isAuthenticated || token);
+
   return (
     <BrowserRouter>
       {/* Global Rate Limit Lockout & Notification */}
       <RateLimitBanner />
 
       <Routes>
-        {/* Public Authentication Routes */}
+        {/* Public Landing & Authentication Routes */}
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
+        {/* Root Route: Show Landing Page when unauthenticated, Dashboard when authenticated */}
+        <Route
+          path="/"
+          element={
+            isAuth ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <LandingPage />
+            )
+          }
+        />
+
         {/* Protected Core Banking Views */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/transfers" element={<TransfersPage />} />
             <Route path="/activity" element={<ActivityPage />} />

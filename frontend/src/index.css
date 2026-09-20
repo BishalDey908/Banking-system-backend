@@ -279,7 +279,6 @@
 
   /* Noticeable card hover elevation with distinct shadow bloom */
   .hover-lift {
-    display: inline-block;
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
                 box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 border-color 0.25s ease !important;
@@ -299,7 +298,6 @@
 
   /* Tactile click compression for buttons and interactive cards */
   .active-press {
-    display: inline-block;
     transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
     user-select: none;
   }
