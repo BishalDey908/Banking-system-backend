@@ -11,6 +11,8 @@ import {
   Moon,
   LogOut,
   QrCode,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,7 +36,7 @@ import { logoutUser } from '../../store/slices/authSlice';
  * Authentic shadcn/ui Dashboard Top Navbar
  * Increased height, enhanced spacing, and precise optical alignment.
  */
-export function Header({ onToggleMobileMenu }) {
+export function Header({ onToggleMobileMenu, isCollapsed = false, onToggleCollapse }) {
   const dispatch = useDispatch();
   const { user, loading: authLoading } = useSelector((state) => state.auth);
   const { darkMode } = useSelector((state) => state.ui);
@@ -50,7 +52,7 @@ export function Header({ onToggleMobileMenu }) {
 
   return (
     <header className="h-20 px-6 sm:px-8 lg:px-10 bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-20 flex items-center justify-between transition-colors shadow-2xs">
-      {/* Left: Mobile hamburger + User Greeting */}
+      {/* Left: Mobile hamburger / Desktop sidebar toggle + User Greeting */}
       <div className="flex items-center gap-3.5 min-w-0">
         <Button
           variant="ghost"
@@ -61,6 +63,23 @@ export function Header({ onToggleMobileMenu }) {
         >
           <Menu className="w-5 h-5" />
         </Button>
+
+        {onToggleCollapse && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-md transition-colors"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
+          </Button>
+        )}
 
         <div className="flex flex-col min-w-0 justify-center">
           <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight tracking-tight truncate">

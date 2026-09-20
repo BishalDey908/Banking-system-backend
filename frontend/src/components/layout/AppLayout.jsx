@@ -14,6 +14,18 @@ import { ToastContainer } from '../common/ToastContainer';
  */
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('fincheck_sidebar_collapsed') === 'true';
+  });
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('fincheck_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   const location = useLocation();
 
   return (
@@ -22,11 +34,17 @@ export function AppLayout() {
       <Sidebar
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
+        collapsed={isCollapsed}
+        onToggleCollapse={handleToggleCollapse}
       />
 
       {/* Main App Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <Header onToggleMobileMenu={() => setMobileOpen(true)} />
+        <Header
+          onToggleMobileMenu={() => setMobileOpen(true)}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-7 max-w-8xl w-full mx-auto">
           <div key={location.pathname} className="animate-page-enter">
